@@ -1,0 +1,10 @@
+.env
+.venv
+docs/
+temp_out/
+AGENTS.md
+SOURCE_SUMMARY.md
+error.txt
+test_run.py
+__pycache__/
+*.pyc

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Causalyn | Constraint-Gated AI</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <p class="eyebrow">EPOCH-V / PROTOTYPE 001</p>
+        <h1>Causalyn</h1>
+        <p class="lede">Translate intent, execute in Shadow Execution, verify invariants, and commit only when authorized.</p>
+      </header>
+      <section class="composer panel">
+        <label for="intent">Human intent</label>
+        <textarea id="intent" rows="4" placeholder="Update the public settings to enable the new feature"></textarea>
+        <button id="run">Run through the gate</button>
+        <p id="error" class="error" role="alert"></p>
+      </section>
+      <section id="result" class="panel hidden" aria-live="polite">
+        <div class="result-head"><span id="stage" class="badge"></span><span id="pipeline"></span></div>
+        <h2 id="goal"></h2>
+        <div class="grid">
+          <div><span class="label">Verification</span><strong id="verification"></strong></div>
+          <div><span class="label">Commit</span><strong id="commit"></strong></div>
+        </div>
+        <div id="reason" class="notice hidden"></div>
+      </section>
+      <section class="panel">
+        <div class="section-head"><h2>Current state</h2><button id="refresh" class="quiet">Refresh</button></div>
+        <p id="state"></p>
+        <ul id="files"></ul>
+      </section>
+      <footer>IMPLEMENTATION analogue. This M1 prototype does not prove VPSN theory.</footer>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
