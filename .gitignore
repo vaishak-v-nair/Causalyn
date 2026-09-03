@@ -8,3 +8,4 @@ error.txt
 test_run.py
 __pycache__/
 *.pyc
+runtime/

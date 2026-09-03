@@ -3,17 +3,31 @@ const $ = (id) => document.getElementById(id);
 async function request(path, options) {
   const response = await fetch(path, options);
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Request failed");
+  if (!response.ok) throw new Error(payload.error?.message || payload.error || "Request failed");
   return payload;
 }
 
 function renderState(state) {
   $("state").textContent = `${state.file_count} files · ${Object.keys(state.data).length} data values`;
-  $("files").innerHTML = state.files.map((file) => `<li>${file}</li>`).join("");
+  $("files").innerHTML = state.files.map((file) => `<li><span class="file-icon">↳</span><code>${file}</code></li>`).join("");
 }
 
 async function refreshState() {
   renderState(await request("/api/state"));
+}
+
+async function refreshHealth() {
+  await request("/api/health");
+  $("health-dot").classList.add("online");
+  $("health-text").textContent = "Local gate online";
+}
+
+function renderStages(stages) {
+  const labels = ["intent_received", "intent_translated", "shadow_execution", "verification", "commit_attempt", "committed"];
+  $("stages").innerHTML = labels.map((stage) => {
+    const done = stages.includes(stage);
+    return `<span class="${done ? "done" : ""}">${stage.replaceAll("_", " ")}</span>`;
+  }).join("");
 }
 
 async function runIntent() {
@@ -35,6 +49,7 @@ async function runIntent() {
     $("commit").textContent = result.commit?.decision || "not run";
     $("reason").textContent = result.commit?.reason || result.error || "";
     $("reason").classList.toggle("hidden", !result.commit?.reason && !result.error);
+    renderStages(result.stages_completed || []);
     await refreshState();
   } catch (error) {
     $("error").textContent = error.message;
@@ -45,4 +60,7 @@ async function runIntent() {
 
 $("run").addEventListener("click", runIntent);
 $("refresh").addEventListener("click", refreshState);
-refreshState().catch((error) => { $("error").textContent = error.message; });
+$("intent").addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") runIntent();
+});
+Promise.all([refreshState(), refreshHealth()]).catch((error) => { $("error").textContent = error.message; });

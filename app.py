@@ -4,11 +4,20 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
+import threading
+import uuid
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
+from starlette.middleware.cors import CORSMiddleware
 
 from source.commit.boundary import CommitBoundary
 from source.failure_pattern.dataset import FailurePatternDataset
@@ -52,6 +61,55 @@ def build_orchestrator() -> tuple[AIOrchestrator, WorldStateManager]:
 
 
 ORCHESTRATOR, WORLD_STATE = build_orchestrator()
+PIPELINE_LOCK = threading.Lock()
+
+
+class IntentRequest(BaseModel):
+    intent: str = Field(min_length=1, max_length=4000)
+
+
+class PipelineStore:
+    """Small SQLite audit store for restart-safe pipeline summaries."""
+
+    def __init__(self, path: str | None = None) -> None:
+        self.path = path or os.environ.get(
+            "CAUSALYN_DB", str(ROOT / "runtime" / "causalyn.sqlite3")
+        )
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS pipelines (
+                    pipeline_id TEXT PRIMARY KEY,
+                    created_at REAL NOT NULL,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
+
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self.path, timeout=5)
+        connection.execute("PRAGMA journal_mode=WAL")
+        return connection
+
+    def save(self, payload: dict[str, Any]) -> None:
+        with self._lock, self._connect() as connection:
+            connection.execute(
+                "INSERT OR REPLACE INTO pipelines VALUES (?, ?, ?)",
+                (payload["pipeline_id"], payload.get("timestamp", 0), json.dumps(payload)),
+            )
+
+    def recent(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self._lock, self._connect() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM pipelines ORDER BY created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+
+PIPELINE_STORE = PipelineStore()
 
 
 def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
@@ -59,7 +117,9 @@ def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
     record = context.commit_record
     return {
         "pipeline_id": context.pipeline_id,
+        "timestamp": context.timestamp,
         "stage": context.current_stage.value,
+        "stages_completed": [stage.value for stage in context.stages_completed],
         "error": context.error,
         "intent": {
             "intent_id": spec.intent_id,
@@ -80,6 +140,90 @@ def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
         if record
         else None,
     }
+
+api = FastAPI(title="Causalyn API", version="0.2.0")
+api.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+)
+
+
+@api.middleware("http")
+async def request_context(request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+@api.exception_handler(HTTPException)
+async def http_error(_: Request, exc: HTTPException):
+        detail = exc.detail if isinstance(exc.detail, dict) else {"code": "request_error", "message": str(exc.detail)}
+        return JSONResponse(status_code=exc.status_code, content={"error": detail})
+
+
+@api.exception_handler(RequestValidationError)
+async def validation_error(_: Request, exc: RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": {
+                    "code": "validation_error",
+                    "message": "Request validation failed",
+                    "fields": exc.errors(),
+                }
+            },
+        )
+
+
+@api.get("/api/health")
+def health() -> dict[str, str]:
+        return {"status": "ok", "service": "causalyn", "maturity": "M1_TOY_PROTOTYPE"}
+
+
+@api.get("/api/state")
+def state() -> dict[str, Any]:
+        current = WORLD_STATE.get_current_state()
+        return {
+            "data": current.data,
+            "files": sorted(current.file_system),
+            "file_count": len(current.file_system),
+        }
+
+
+@api.get("/api/pipelines")
+def pipelines() -> dict[str, Any]:
+        return {"pipelines": PIPELINE_STORE.recent()}
+
+
+@api.post("/api/intents")
+def intents(request: IntentRequest) -> dict[str, Any]:
+        intent = request.intent.strip()
+        if not intent:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "invalid_intent", "message": "intent must be a non-empty string"},
+            )
+        with PIPELINE_LOCK:
+            context = ORCHESTRATOR.process_intent(intent)
+            payload = context_to_dict(context)
+            PIPELINE_STORE.save(payload)
+        return payload
+
+
+@api.get("/")
+def index() -> FileResponse:
+        return FileResponse(WEB_ROOT / "index.html")
+
+
+@api.get("/{asset:path}")
+def asset(asset: str) -> FileResponse:
+        allowed = {"app.js": "text/javascript", "styles.css": "text/css"}
+        if asset not in allowed:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
+        return FileResponse(WEB_ROOT / asset, media_type=allowed[asset])
 
 
 class CausalynHandler(BaseHTTPRequestHandler):
@@ -158,14 +302,9 @@ class CausalynHandler(BaseHTTPRequestHandler):
 def main() -> None:
     host = os.environ.get("CAUSALYN_HOST", "127.0.0.1")
     port = int(os.environ.get("CAUSALYN_PORT", "8000"))
-    server = ThreadingHTTPServer((host, port), CausalynHandler)
-    print(f"Causalyn running at http://{host}:{port}")
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
+    import uvicorn
+
+    uvicorn.run(api, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":

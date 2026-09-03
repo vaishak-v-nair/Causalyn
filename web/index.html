@@ -3,25 +3,30 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#080b12">
     <title>Causalyn | Constraint-Gated AI</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
     <main class="shell">
-      <header>
-        <p class="eyebrow">EPOCH-V / PROTOTYPE 001</p>
-        <h1>Causalyn</h1>
-        <p class="lede">Translate intent, execute in Shadow Execution, verify invariants, and commit only when authorized.</p>
+      <header class="hero">
+        <div>
+          <p class="eyebrow">EPOCH-V / PROTOTYPE 001</p>
+          <h1>Causalyn<span class="dot">.</span></h1>
+          <p class="lede">A constraint-gated AI execution surface. Intent becomes a candidate change, never a blind mutation.</p>
+        </div>
+        <div class="health" aria-label="Service status"><span id="health-dot" class="health-dot"></span><span id="health-text">Checking service</span></div>
       </header>
       <section class="composer panel">
-        <label for="intent">Human intent</label>
+        <div class="section-head"><div><p class="eyebrow">01 / Compose</p><label for="intent">Human intent</label></div><span class="shortcut">CTRL + ENTER</span></div>
         <textarea id="intent" rows="4" placeholder="Update the public settings to enable the new feature"></textarea>
-        <button id="run">Run through the gate</button>
+        <div class="composer-actions"><span class="hint">Runs PLAN → SIMULATE → VERIFY → COMMIT</span><button id="run">Run through the gate <span aria-hidden="true">↗</span></button></div>
         <p id="error" class="error" role="alert"></p>
       </section>
       <section id="result" class="panel hidden" aria-live="polite">
-        <div class="result-head"><span id="stage" class="badge"></span><span id="pipeline"></span></div>
+        <div class="result-head"><div><p class="eyebrow">02 / Decision</p><span id="stage" class="badge"></span></div><code id="pipeline"></code></div>
         <h2 id="goal"></h2>
+        <div id="stages" class="stages"></div>
         <div class="grid">
           <div><span class="label">Verification</span><strong id="verification"></strong></div>
           <div><span class="label">Commit</span><strong id="commit"></strong></div>
@@ -29,11 +34,11 @@
         <div id="reason" class="notice hidden"></div>
       </section>
       <section class="panel">
-        <div class="section-head"><h2>Current state</h2><button id="refresh" class="quiet">Refresh</button></div>
+        <div class="section-head"><div><p class="eyebrow">03 / Ambient Fabric</p><h2>Current state</h2></div><button id="refresh" class="quiet">Refresh</button></div>
         <p id="state"></p>
         <ul id="files"></ul>
       </section>
-      <footer>IMPLEMENTATION analogue. This M1 prototype does not prove VPSN theory.</footer>
+      <footer><span class="footer-mark">C</span><span>IMPLEMENTATION analogue. M1 does not prove VPSN theory.</span><span class="footer-right">Shadow Execution · Verification Gating</span></footer>
     </main>
     <script src="/app.js"></script>
   </body>
