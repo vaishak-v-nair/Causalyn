@@ -63,7 +63,12 @@ class HarnessContext:
         """Resolve a path to the appropriate location based on shadow mode.
         Returns a Path object.
         """
+        if not isinstance(path, str):
+            raise ValueError("path must be a string")
         norm_path = path.replace('\\', '/')
+        parts = [part for part in norm_path.split('/') if part]
+        if any(part in (".", "..") for part in parts):
+            raise ValueError("path traversal is not allowed")
         if not norm_path.startswith('/'):
             norm_path = '/' + norm_path
         # Remove double slashes
@@ -75,7 +80,10 @@ class HarnessContext:
         else:
             # Use real directory from world state manager
             base = Path(self.world_state_manager.root_path)
-        return base / norm_path.lstrip('/')
+        candidate = (base / norm_path.lstrip('/')).resolve()
+        if candidate != base.resolve() and base.resolve() not in candidate.parents:
+            raise ValueError("path escapes managed state")
+        return candidate
 
     def read_file(self, path: str) -> Optional[str]:
         """Read a file's content."""

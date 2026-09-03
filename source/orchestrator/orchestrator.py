@@ -206,6 +206,8 @@ class AIOrchestrator:
         finally:
             # Move to history and remove from active
             self.pipeline_history.append(context)
+            if len(self.pipeline_history) > 100:
+                del self.pipeline_history[:-100]
             if context.pipeline_id in self.active_pipelines:
                 del self.active_pipelines[context.pipeline_id]
 

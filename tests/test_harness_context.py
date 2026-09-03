@@ -69,5 +69,9 @@ class TestHarnessContext(unittest.TestCase):
         # Exit shadow mode
         self.shadow_executor.exit_shadow_mode(commit=False)
 
+    def test_path_traversal_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.harness_context._resolve_path("/../../outside.txt")
+
 if __name__ == '__main__':
     unittest.main()

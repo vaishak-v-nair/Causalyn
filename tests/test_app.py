@@ -1,34 +1,21 @@
-import json
-import threading
 import unittest
-from http.client import HTTPConnection
-from http.server import ThreadingHTTPServer
 
 import app
+from fastapi.testclient import TestClient
 
 
 class TestCausalynApi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), app.CausalynHandler)
-        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
-        cls.thread.start()
-        cls.port = cls.server.server_address[1]
+        cls.client = TestClient(app.api)
 
     @classmethod
     def tearDownClass(cls):
-        cls.server.shutdown()
-        cls.server.server_close()
-        cls.thread.join()
+        cls.client.close()
 
     def request(self, method, path, body=None):
-        connection = HTTPConnection("127.0.0.1", self.port)
-        payload = json.dumps(body).encode() if body is not None else None
-        connection.request(method, path, payload, {"Content-Type": "application/json"})
-        response = connection.getresponse()
-        data = json.loads(response.read())
-        connection.close()
-        return response.status, data
+        response = self.client.request(method, path, json=body)
+        return response.status_code, response.json()
 
     def test_health_and_state(self):
         status, payload = self.request("GET", "/api/health")
@@ -46,11 +33,16 @@ class TestCausalynApi(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["verification"], "allow")
         self.assertEqual(payload["commit"]["decision"], "committed")
+        pipeline_id = payload["pipeline_id"]
+        status, payload = self.request("GET", "/api/pipelines")
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["pipelines"])
+        self.assertIn(pipeline_id, [item["pipeline_id"] for item in payload["pipelines"]])
 
     def test_invalid_intent(self):
         status, payload = self.request("POST", "/api/intents", {"intent": ""})
-        self.assertEqual(status, 400)
-        self.assertIn("non-empty", payload["error"])
+        self.assertEqual(status, 422)
+        self.assertEqual(payload["error"]["code"], "validation_error")
 
 
 if __name__ == "__main__":

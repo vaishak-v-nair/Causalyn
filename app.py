@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import sqlite3
 import threading
 import uuid
 from http import HTTPStatus
@@ -16,7 +15,6 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
-from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from source.commit.boundary import CommitBoundary
@@ -25,6 +23,8 @@ from source.orchestrator.orchestrator import AIOrchestrator, OrchestrationContex
 from source.shadow.executor import ShadowExecutor
 from source.verification.invariant_checker import create_default_verification_engine
 from source.model.world_state import WorldStateManager
+from source.api.contracts import IntentRequest
+from source.storage.pipeline_store import PipelineStore
 
 
 ROOT = Path(__file__).parent
@@ -64,52 +64,9 @@ ORCHESTRATOR, WORLD_STATE = build_orchestrator()
 PIPELINE_LOCK = threading.Lock()
 
 
-class IntentRequest(BaseModel):
-    intent: str = Field(min_length=1, max_length=4000)
-
-
-class PipelineStore:
-    """Small SQLite audit store for restart-safe pipeline summaries."""
-
-    def __init__(self, path: str | None = None) -> None:
-        self.path = path or os.environ.get(
-            "CAUSALYN_DB", str(ROOT / "runtime" / "causalyn.sqlite3")
-        )
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self._lock = threading.Lock()
-        with self._connect() as connection:
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS pipelines (
-                    pipeline_id TEXT PRIMARY KEY,
-                    created_at REAL NOT NULL,
-                    payload TEXT NOT NULL
-                )
-                """
-            )
-
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.path, timeout=5)
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
-
-    def save(self, payload: dict[str, Any]) -> None:
-        with self._lock, self._connect() as connection:
-            connection.execute(
-                "INSERT OR REPLACE INTO pipelines VALUES (?, ?, ?)",
-                (payload["pipeline_id"], payload.get("timestamp", 0), json.dumps(payload)),
-            )
-
-    def recent(self, limit: int = 50) -> list[dict[str, Any]]:
-        with self._lock, self._connect() as connection:
-            rows = connection.execute(
-                "SELECT payload FROM pipelines ORDER BY created_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
-        return [json.loads(row[0]) for row in rows]
-
-
-PIPELINE_STORE = PipelineStore()
+PIPELINE_STORE = PipelineStore(
+    os.environ.get("CAUSALYN_DB", str(ROOT / "runtime" / "causalyn.sqlite3"))
+)
 
 
 def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
@@ -185,7 +142,8 @@ def health() -> dict[str, str]:
 
 @api.get("/api/state")
 def state() -> dict[str, Any]:
-        current = WORLD_STATE.get_current_state()
+        with PIPELINE_LOCK:
+            current = WORLD_STATE.get_current_state()
         return {
             "data": current.data,
             "files": sorted(current.file_system),

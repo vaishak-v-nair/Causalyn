@@ -28,6 +28,9 @@ button:disabled { opacity: .6; cursor: wait; }
 .error { min-height: 1.2em; }
 ul { color: #b3bdd8; line-height: 1.8; list-style: none; padding: 0; margin-bottom: 0; }
 li { border-top: 1px solid #273149; padding: 8px 0; }
+.history-row { display: flex; justify-content: space-between; gap: 12px; }
+.history-status { color: #9dffca; font-size: .72rem; text-transform: uppercase; }
+.history-intent, .muted { color: #7885a5; font-size: .78rem; }
 .file-icon { color: #7562e8; margin-right: 8px; }
 .hint { color: #7885a5; font-size: .78rem; }
 .stages { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 22px; }

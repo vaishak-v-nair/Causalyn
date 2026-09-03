@@ -22,6 +22,14 @@ async function refreshHealth() {
   $("health-text").textContent = "Local gate online";
 }
 
+async function refreshPipelines() {
+  const payload = await request("/api/pipelines");
+  const items = payload.pipelines || [];
+  $("pipelines").innerHTML = items.length
+    ? items.map((item) => `<li><div class="history-row"><code>${item.pipeline_id}</code><span class="history-status">${item.commit?.decision || item.stage}</span></div><span class="history-intent">${item.intent?.goal || "Untranslated intent"}</span></li>`).join("")
+    : '<li class="muted">No pipeline runs yet.</li>';
+}
+
 function renderStages(stages) {
   const labels = ["intent_received", "intent_translated", "shadow_execution", "verification", "commit_attempt", "committed"];
   $("stages").innerHTML = labels.map((stage) => {
@@ -50,7 +58,7 @@ async function runIntent() {
     $("reason").textContent = result.commit?.reason || result.error || "";
     $("reason").classList.toggle("hidden", !result.commit?.reason && !result.error);
     renderStages(result.stages_completed || []);
-    await refreshState();
+    await Promise.all([refreshState(), refreshPipelines()]);
   } catch (error) {
     $("error").textContent = error.message;
   } finally {
@@ -63,4 +71,4 @@ $("refresh").addEventListener("click", refreshState);
 $("intent").addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") runIntent();
 });
-Promise.all([refreshState(), refreshHealth()]).catch((error) => { $("error").textContent = error.message; });
+Promise.all([refreshState(), refreshHealth(), refreshPipelines()]).catch((error) => { $("error").textContent = error.message; });
