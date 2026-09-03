@@ -9,32 +9,46 @@
   </head>
   <body>
     <main class="shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">C</span><div><strong>CAUSALYN</strong><span>EXECUTION CONTROL PLANE</span></div></div>
+        <div class="topbar-actions"><div class="health" aria-label="Service status"><span id="health-dot" class="health-dot"></span><span id="health-text">Checking service</span></div><button id="new-mission" class="quiet">New mission</button></div>
+      </header>
+      <div class="workspace">
+        <aside class="sidebar panel">
+          <p class="eyebrow">Missions</p>
+          <nav class="mission-nav" aria-label="Mission filters">
+            <button class="active">Recent <span id="recent-count">0</span></button>
+            <button>Running <span>0</span></button>
+            <button>Needs review <span>0</span></button>
+            <button>Blocked <span>0</span></button>
+            <button>Completed <span>0</span></button>
+          </nav>
+          <div class="sidebar-note"><span class="health-dot online"></span><div><strong>Local gate</strong><small>Provider-neutral<br>fail-closed runtime</small></div></div>
+        </aside>
+        <div class="content">
       <header class="hero">
-        <div>
-          <p class="eyebrow">EPOCH-V / PROTOTYPE 001</p>
-          <h1>Causalyn<span class="dot">.</span></h1>
-          <p class="lede">A constraint-gated AI execution surface. Intent becomes a candidate change, never a blind mutation.</p>
-        </div>
-        <div class="health" aria-label="Service status"><span id="health-dot" class="health-dot"></span><span id="health-text">Checking service</span></div>
+        <div><p class="eyebrow">MISSION CONTROL / LOCAL REPOSITORY</p><h1>Evidence before <span class="gradient-text">execution.</span></h1><p class="lede">Give AI real work. Inspect the candidate state, verify the consequences, then decide what is allowed to happen.</p></div>
       </header>
       <section class="composer panel">
-        <div class="section-head"><div><p class="eyebrow">01 / Command</p><label for="intent">Human intent</label></div><span class="shortcut">CTRL + ENTER</span></div>
+        <div class="section-head"><div><p class="eyebrow">01 / Mission</p><label for="intent">What do you want AI to do?</label></div><span class="shortcut">CTRL + ENTER</span></div>
         <textarea id="intent" rows="4" placeholder="Update the public settings to enable the new feature"></textarea>
+        <div class="context-row"><span class="label">Context</span><span class="context-chip">Local repository</span><span class="context-chip">Ambient Fabric</span><span class="context-chip">Policy set</span></div>
         <div class="mode-row">
           <label for="mode">Execution mode</label>
           <select id="mode">
             <option value="shadow">Shadow execution (default)</option>
             <option value="analyze">Analyze only</option>
           </select>
-          <span class="hint">No commit occurs outside the API decision.</span>
+          <span class="hint">No direct mutation. Commits remain behind the decision boundary.</span>
         </div>
-        <div class="composer-actions"><span class="hint">Evidence pipeline · fail closed</span><button id="run">Run command <span aria-hidden="true">↗</span></button></div>
+        <div class="composer-actions"><span class="hint">PLAN → SIMULATE → VERIFY → DECIDE</span><button id="run">Run mission <span aria-hidden="true">↗</span></button></div>
         <p id="error" class="error" role="alert"></p>
       </section>
       <section id="result" class="panel hidden" aria-live="polite">
-        <div class="result-head"><div><p class="eyebrow">02 / Mission record</p><span id="stage" class="badge"></span></div><code id="pipeline"></code></div>
+        <div class="result-head"><div><p class="eyebrow">02 / Mission record</p><span id="stage" class="badge"></span></div><div class="view-toggle"><button id="human-view" class="active">Human view</button><button id="technical-view">Technical view</button></div><code id="pipeline"></code></div>
         <h2 id="goal"></h2>
         <div id="stages" class="stages"></div>
+        <div class="timeline" id="timeline"></div>
         <div class="grid">
           <div><span class="label">Verification</span><strong id="verification"></strong></div>
           <div><span class="label">Commit</span><strong id="commit"></strong></div>
@@ -47,21 +61,26 @@
           <div><span class="label">Risks / unknowns</span><ul id="risks"><li class="muted">None reported by the API.</li></ul></div>
           <div><span class="label">Assumptions</span><ul id="assumptions"><li class="muted">None reported by the API.</li></ul></div>
         </div>
+        <div class="verification-matrix"><div class="section-head"><div><p class="eyebrow">Evidence</p><h3>Verification matrix</h3></div><span class="hint">Deterministic checks only</span></div><div id="checks"></div></div>
+        <div class="shadow-card"><div><p class="eyebrow">Candidate state</p><h3>Shadow impact</h3></div><div class="shadow-columns"><div><span class="label">Current state</span><strong>Ambient Fabric</strong><small>Unchanged until commit authorization.</small></div><div class="arrow">→</div><div><span class="label">Proposed state</span><strong id="proposed-state">No changes</strong><small id="proposed-detail">The API returned no candidate mutation.</small></div></div></div>
+        <div id="technical-panel" class="technical-panel hidden"><p class="eyebrow">Technical view</p><div class="technical-grid"><span>Intent representation</span><code>Provider-neutral baseline</code><span>Shadow runtime</span><code>Transactional candidate state</code><span>Verification decision</span><code id="technical-decision">UNAVAILABLE</code><span>VPSN status</span><code>IMPLEMENTATION analogue · not proven</code></div></div>
         <div class="authorization-card">
           <div><span class="label">Authorization presentation</span><strong id="authorization-detail"></strong></div>
           <code id="commit-id"></code>
         </div>
       </section>
       <section class="panel">
-        <div class="section-head"><div><p class="eyebrow">03 / Ambient Fabric</p><h2>Current state</h2></div><button id="refresh" class="quiet">Refresh</button></div>
+        <div class="section-head"><div><p class="eyebrow">03 / Context</p><h2>Current state</h2></div><button id="refresh" class="quiet">Refresh</button></div>
         <p id="state"></p>
         <ul id="files"></ul>
       </section>
       <section class="panel">
-        <div class="section-head"><div><p class="eyebrow">04 / Audit trail</p><h2>Recent pipelines</h2></div><span class="shortcut">PERSISTED LOCALLY</span></div>
+        <div class="section-head"><div><p class="eyebrow">04 / Operational memory</p><h2>Recent missions</h2></div><span class="shortcut">PERSISTED LOCALLY</span></div>
         <ul id="pipelines"><li class="muted">No pipeline runs yet.</li></ul>
       </section>
-      <footer><span class="footer-mark">C</span><span>IMPLEMENTATION analogue. M1 does not prove VPSN theory.</span><span class="footer-right">Shadow Execution · Verification Gating</span></footer>
+      <footer><span class="footer-mark">C</span><span>AI handles ambiguity. Machines handle certainty.</span><span class="footer-right">Shadow Execution · Verification Gating</span></footer>
+        </div>
+      </div>
     </main>
     <script src="/app.js"></script>
   </body>
