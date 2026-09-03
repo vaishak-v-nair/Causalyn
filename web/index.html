@@ -18,20 +18,39 @@
         <div class="health" aria-label="Service status"><span id="health-dot" class="health-dot"></span><span id="health-text">Checking service</span></div>
       </header>
       <section class="composer panel">
-        <div class="section-head"><div><p class="eyebrow">01 / Compose</p><label for="intent">Human intent</label></div><span class="shortcut">CTRL + ENTER</span></div>
+        <div class="section-head"><div><p class="eyebrow">01 / Command</p><label for="intent">Human intent</label></div><span class="shortcut">CTRL + ENTER</span></div>
         <textarea id="intent" rows="4" placeholder="Update the public settings to enable the new feature"></textarea>
-        <div class="composer-actions"><span class="hint">Runs PLAN → SIMULATE → VERIFY → COMMIT</span><button id="run">Run through the gate <span aria-hidden="true">↗</span></button></div>
+        <div class="mode-row">
+          <label for="mode">Execution mode</label>
+          <select id="mode">
+            <option value="shadow">Shadow execution (default)</option>
+            <option value="analyze">Analyze only</option>
+          </select>
+          <span class="hint">No commit occurs outside the API decision.</span>
+        </div>
+        <div class="composer-actions"><span class="hint">Evidence pipeline · fail closed</span><button id="run">Run command <span aria-hidden="true">↗</span></button></div>
         <p id="error" class="error" role="alert"></p>
       </section>
       <section id="result" class="panel hidden" aria-live="polite">
-        <div class="result-head"><div><p class="eyebrow">02 / Decision</p><span id="stage" class="badge"></span></div><code id="pipeline"></code></div>
+        <div class="result-head"><div><p class="eyebrow">02 / Mission record</p><span id="stage" class="badge"></span></div><code id="pipeline"></code></div>
         <h2 id="goal"></h2>
         <div id="stages" class="stages"></div>
         <div class="grid">
           <div><span class="label">Verification</span><strong id="verification"></strong></div>
           <div><span class="label">Commit</span><strong id="commit"></strong></div>
+          <div><span class="label">Authorization</span><strong id="authorization"></strong></div>
+          <div><span class="label">Changes</span><strong id="changes"></strong></div>
         </div>
         <div id="reason" class="notice hidden"></div>
+        <div class="evidence-grid">
+          <div><span class="label">Actions</span><ul id="actions"><li class="muted">No recorded actions.</li></ul></div>
+          <div><span class="label">Risks / unknowns</span><ul id="risks"><li class="muted">None reported by the API.</li></ul></div>
+          <div><span class="label">Assumptions</span><ul id="assumptions"><li class="muted">None reported by the API.</li></ul></div>
+        </div>
+        <div class="authorization-card">
+          <div><span class="label">Authorization presentation</span><strong id="authorization-detail"></strong></div>
+          <code id="commit-id"></code>
+        </div>
       </section>
       <section class="panel">
         <div class="section-head"><div><p class="eyebrow">03 / Ambient Fabric</p><h2>Current state</h2></div><button id="refresh" class="quiet">Refresh</button></div>

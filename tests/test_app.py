@@ -44,6 +44,17 @@ class TestCausalynApi(unittest.TestCase):
         self.assertEqual(status, 422)
         self.assertEqual(payload["error"]["code"], "validation_error")
 
+    def test_analyze_mode_stays_before_commit(self):
+        status, payload = self.request(
+            "POST",
+            "/api/intents",
+            {"intent": "Update the public settings", "execution_mode": "analyze"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["execution_mode"], "analyze")
+        self.assertIsNone(payload["commit"])
+        self.assertEqual(payload["verification"], "allow")
+
 
 if __name__ == "__main__":
     unittest.main()

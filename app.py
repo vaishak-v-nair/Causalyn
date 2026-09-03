@@ -23,7 +23,9 @@ from source.orchestrator.orchestrator import AIOrchestrator, OrchestrationContex
 from source.shadow.executor import ShadowExecutor
 from source.verification.invariant_checker import create_default_verification_engine
 from source.model.world_state import WorldStateManager
-from source.api.contracts import IntentRequest
+from source.api.routes import create_router
+from source.api.services import BackendService
+from source.config import get_settings
 from source.storage.pipeline_store import PipelineStore
 
 
@@ -81,7 +83,11 @@ def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
         "intent": {
             "intent_id": spec.intent_id,
             "goal": spec.goal,
+            "scope": spec.scope,
+            "assumptions": spec.assumptions,
             "ambiguities": spec.ambiguities,
+            "unknowns": spec.unknowns,
+            "required_invariants": spec.required_invariants,
             "forbidden_states": spec.forbidden_states,
         }
         if spec
@@ -90,9 +96,12 @@ def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
         if context.verification_decision
         else None,
         "commit": {
+            "commit_id": record.commit_id,
             "decision": record.decision.value,
             "reason": record.escalation_reason,
             "changes": record.changes_summary,
+            "authorization_given": record.authorization_given,
+            "verification_decision": record.verification_decision.value,
         }
         if record
         else None,
@@ -135,40 +144,8 @@ async def validation_error(_: Request, exc: RequestValidationError):
         )
 
 
-@api.get("/api/health")
-def health() -> dict[str, str]:
-        return {"status": "ok", "service": "causalyn", "maturity": "M1_TOY_PROTOTYPE"}
-
-
-@api.get("/api/state")
-def state() -> dict[str, Any]:
-        with PIPELINE_LOCK:
-            current = WORLD_STATE.get_current_state()
-        return {
-            "data": current.data,
-            "files": sorted(current.file_system),
-            "file_count": len(current.file_system),
-        }
-
-
-@api.get("/api/pipelines")
-def pipelines() -> dict[str, Any]:
-        return {"pipelines": PIPELINE_STORE.recent()}
-
-
-@api.post("/api/intents")
-def intents(request: IntentRequest) -> dict[str, Any]:
-        intent = request.intent.strip()
-        if not intent:
-            raise HTTPException(
-                status_code=400,
-                detail={"code": "invalid_intent", "message": "intent must be a non-empty string"},
-            )
-        with PIPELINE_LOCK:
-            context = ORCHESTRATOR.process_intent(intent)
-            payload = context_to_dict(context)
-            PIPELINE_STORE.save(payload)
-        return payload
+BACKEND_SERVICE = BackendService(ORCHESTRATOR, WORLD_STATE, PIPELINE_STORE, PIPELINE_LOCK)
+api.include_router(create_router(BACKEND_SERVICE, context_to_dict))
 
 
 @api.get("/")
@@ -258,11 +235,10 @@ class CausalynHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    host = os.environ.get("CAUSALYN_HOST", "127.0.0.1")
-    port = int(os.environ.get("CAUSALYN_PORT", "8000"))
+    settings = get_settings()
     import uvicorn
 
-    uvicorn.run(api, host=host, port=port, log_level="info")
+    uvicorn.run(api, host=settings.host, port=settings.port, log_level="info")
 
 
 if __name__ == "__main__":

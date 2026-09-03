@@ -16,7 +16,8 @@ class PipelineStore:
         self.path = path
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        with self._connect() as connection:
+        connection = self._connect()
+        try:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS pipelines (
@@ -30,6 +31,9 @@ class PipelineStore:
                 "CREATE INDEX IF NOT EXISTS idx_pipelines_created_at "
                 "ON pipelines(created_at DESC)"
             )
+            connection.commit()
+        finally:
+            connection.close()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=5)
@@ -38,21 +42,30 @@ class PipelineStore:
         return connection
 
     def save(self, payload: dict[str, Any]) -> None:
-        with self._lock, self._connect() as connection:
-            connection.execute(
-                "INSERT OR REPLACE INTO pipelines VALUES (?, ?, ?)",
-                (
-                    payload["pipeline_id"],
-                    payload.get("timestamp", 0),
-                    json.dumps(payload, separators=(",", ":")),
-                ),
-            )
+        with self._lock:
+            connection = self._connect()
+            try:
+                connection.execute(
+                    "INSERT OR REPLACE INTO pipelines VALUES (?, ?, ?)",
+                    (
+                        payload["pipeline_id"],
+                        payload.get("timestamp", 0),
+                        json.dumps(payload, separators=(",", ":")),
+                    ),
+                )
+                connection.commit()
+            finally:
+                connection.close()
 
     def recent(self, limit: int = 50) -> list[dict[str, Any]]:
         safe_limit = max(1, min(limit, 100))
-        with self._lock, self._connect() as connection:
-            rows = connection.execute(
-                "SELECT payload FROM pipelines ORDER BY created_at DESC LIMIT ?",
-                (safe_limit,),
-            ).fetchall()
+        with self._lock:
+            connection = self._connect()
+            try:
+                rows = connection.execute(
+                    "SELECT payload FROM pipelines ORDER BY created_at DESC LIMIT ?",
+                    (safe_limit,),
+                ).fetchall()
+            finally:
+                connection.close()
         return [json.loads(row[0]) for row in rows]

@@ -75,7 +75,7 @@ class AIOrchestrator:
         self.harness_context = HarnessContext(world_state_manager, shadow_executor)
         self.intent_translator = IntentTranslator()
 
-    def process_intent(self, natural_language_intent: str) -> OrchestrationContext:
+    def process_intent(self, natural_language_intent: str, execution_mode: str = "shadow") -> OrchestrationContext:
         """
         Process a natural language intent through the full orchestration pipeline.
 
@@ -85,6 +85,8 @@ class AIOrchestrator:
         Returns:
             OrchestrationContext: Context of the completed pipeline
         """
+        if execution_mode not in {"shadow", "analyze"}:
+            raise ValueError("Unsupported execution mode")
         pipeline_id = f"pipeline-{int(time.time() * 1000)}"
         context = OrchestrationContext(
             pipeline_id=pipeline_id,
@@ -142,6 +144,10 @@ class AIOrchestrator:
             context.current_stage = OrchestrationStage.VERIFICATION
             context.stages_completed.append(OrchestrationStage.VERIFICATION)
             self._record_stage_completion(context)
+
+            if execution_mode == "analyze":
+                self.shadow_executor.exit_shadow_mode(commit=False)
+                return context
 
             # Stage 5: Commit Attempt
             if not self.commit_boundary:
