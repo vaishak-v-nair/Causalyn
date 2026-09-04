@@ -350,6 +350,56 @@ class TransactionalAuditRepository:
                 out.append(item)
             return out
 
+    def save_domain_mission(self, mission_data: dict[str, Any]) -> None:
+        """Upsert a full domain Mission aggregate."""
+        mission_id = mission_data["mission_id"]
+        request_id = mission_data.get("request_id") or f"req-{mission_id}"
+        intent_info = mission_data.get("intent") or {}
+        name = intent_info.get("goal") or mission_id
+        status = mission_data.get("state", "pending")
+        now = time.time()
+        payload_str = json.dumps(mission_data, sort_keys=True)
+
+        with self._lock, self._session() as connection:
+            existing = connection.execute(
+                "SELECT mission_id FROM missions WHERE mission_id=?", (mission_id,)
+            ).fetchone()
+            if existing:
+                connection.execute(
+                    "UPDATE missions SET status=?, updated_at=?, payload=? WHERE mission_id=?",
+                    (status, now, payload_str, mission_id),
+                )
+            else:
+                connection.execute(
+                    "INSERT INTO missions (mission_id, request_id, name, status, created_at, updated_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (mission_id, request_id, str(name)[:200], status, mission_data.get("created_at", now), now, payload_str),
+                )
+
+    def get_domain_mission(self, mission_id: str) -> dict[str, Any] | None:
+        """Retrieve full domain Mission aggregate by ID."""
+        with self._session() as connection:
+            row = connection.execute(
+                "SELECT payload FROM missions WHERE mission_id=?", (mission_id,)
+            ).fetchone()
+            if row and row["payload"]:
+                return json.loads(row["payload"])
+            return None
+
+    def list_domain_missions(self, limit: int = 50) -> list[dict[str, Any]]:
+        """List recent full domain Mission aggregates."""
+        with self._session() as connection:
+            rows = connection.execute(
+                "SELECT payload FROM missions ORDER BY updated_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+            out = []
+            for row in rows:
+                if row["payload"]:
+                    try:
+                        out.append(json.loads(row["payload"]))
+                    except Exception:
+                        pass
+            return out
+
 
 class PostgreSQLAuditRepository:
     """Enterprise multi-tenant audit repository backed by PostgreSQL.

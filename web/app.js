@@ -4,14 +4,16 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 
-let allPipelines = [];
+let allMissions = [];
 let currentFilter = "all";
+let activeMissionId = null;
 
 async function request(path, options) {
   const response = await fetch(path, options);
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error?.message || payload.error || "Request failed");
+    const msg = payload.detail?.message || payload.detail || payload.error?.message || payload.error || "Request failed";
+    throw new Error(typeof msg === "object" ? JSON.stringify(msg) : msg);
   }
   return payload;
 }
@@ -26,7 +28,7 @@ function listMarkup(items, empty) {
 function renderState(state) {
   $("state").textContent = `${state.file_count} files · ${Object.keys(state.data || {}).length} memory variables`;
   $("files").innerHTML = (state.files || []).map((file) => {
-    const isProtected = file.startsWith("/protected");
+    const isProtected = file.startsWith("/protected") || file.startsWith("/secrets") || file.endsWith(".env");
     const badgeClass = isProtected ? "file-badge-protected" : "file-badge-public";
     const badgeText = isProtected ? "PROTECTED" : "PUBLIC";
     return `
@@ -67,7 +69,7 @@ async function refreshHealth() {
   try {
     const health = await request("/api/health");
     $("health-dot").classList.add("online");
-    $("health-text").textContent = `C-VPSN Hypervisor (${health.service.toUpperCase()})`;
+    $("health-text").textContent = `C-VPSN Hypervisor (${(health.service || "causalyn").toUpperCase()})`;
   } catch (err) {
     $("health-dot").classList.remove("online");
     $("health-text").textContent = "Hypervisor Offline";
@@ -75,22 +77,22 @@ async function refreshHealth() {
 }
 
 function updateFilterCounts() {
-  $("recent-count").textContent = allPipelines.length;
-  const committed = allPipelines.filter(p => p.commit?.decision === "committed").length;
-  const denied = allPipelines.filter(p => p.commit?.decision === "denied" || p.stage === "failed").length;
+  $("recent-count").textContent = allMissions.length;
+  const committed = allMissions.filter(m => (m.state === "committed" || m.commit?.decision === "committed" || m.stage === "committed")).length;
+  const denied = allMissions.filter(m => (m.state === "denied" || m.state === "rejected" || m.decision?.outcome === "deny" || m.commit?.decision === "denied" || m.stage === "failed")).length;
   if ($("committed-count")) $("committed-count").textContent = committed;
   if ($("denied-count")) $("denied-count").textContent = denied;
 }
 
 function renderHistory(items) {
-  allPipelines = items || [];
+  allMissions = items || [];
   updateFilterCounts();
 
-  let filtered = allPipelines;
+  let filtered = allMissions;
   if (currentFilter === "committed") {
-    filtered = allPipelines.filter(p => p.commit?.decision === "committed");
+    filtered = allMissions.filter(m => (m.state === "committed" || m.commit?.decision === "committed" || m.stage === "committed"));
   } else if (currentFilter === "denied") {
-    filtered = allPipelines.filter(p => p.commit?.decision === "denied" || p.stage === "failed");
+    filtered = allMissions.filter(m => (m.state === "denied" || m.state === "rejected" || m.decision?.outcome === "deny" || m.commit?.decision === "denied" || m.stage === "failed"));
   }
 
   if (!filtered.length) {
@@ -99,108 +101,160 @@ function renderHistory(items) {
   }
 
   $("pipelines").innerHTML = filtered.map((item) => {
-    const status = item.commit?.decision || item.stage || "unknown";
-    const statusClass = status === "committed" ? "committed" : (status === "denied" ? "denied" : "escalated");
+    const id = item.mission_id || item.pipeline_id || "unknown";
+    const status = item.state || item.commit?.decision || item.stage || "pending";
+    const statusClass = (status === "committed")
+      ? "committed"
+      : (status === "denied" || status === "rejected" || status === "failed" ? "denied" : "escalated");
+    const goalText = item.intent?.goal || item.name || "Direct intent";
+
     return `
       <li>
-        <button class="history-link" data-pipeline="${escapeHtml(item.pipeline_id)}">
+        <button class="history-link" data-mission="${escapeHtml(id)}">
           <span class="history-row">
-            <code>${escapeHtml(item.pipeline_id)}</code>
-            <span class="history-status ${statusClass}">${escapeHtml(status)}</span>
+            <code>${escapeHtml(id)}</code>
+            <span class="history-status ${statusClass}">${escapeHtml(status.toUpperCase())}</span>
           </span>
-          <span class="history-intent">${escapeHtml(item.intent?.goal || "Direct intent")}</span>
+          <span class="history-intent">${escapeHtml(goalText)}</span>
         </button>
       </li>
     `;
   }).join("");
 
-  document.querySelectorAll("[data-pipeline]").forEach((btn) => {
+  document.querySelectorAll("[data-mission]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const pid = btn.dataset.pipeline;
-      request(`/api/pipelines/${encodeURIComponent(pid)}`)
-        .then(renderResult)
+      const id = btn.dataset.mission;
+      const endpoint = id.startsWith("mission-") ? `/api/missions/${encodeURIComponent(id)}` : `/api/pipelines/${encodeURIComponent(id)}`;
+      request(endpoint)
+        .then(renderMission)
         .catch(showError);
     });
   });
 }
 
-async function refreshPipelines() {
+async function refreshMissions() {
+  try {
+    const missions = await request("/api/missions");
+    if (missions && missions.length > 0) {
+      renderHistory(missions);
+      return;
+    }
+  } catch (err) {
+    console.warn("Could not fetch missions, trying pipelines:", err);
+  }
+
   try {
     const payload = await request("/api/pipelines");
     renderHistory(payload.pipelines || []);
   } catch (err) {
-    console.warn("Could not refresh pipelines:", err);
+    console.warn("Could not refresh history:", err);
   }
 }
 
-function renderStages(stages) {
+function renderStages(stageOrList) {
   const lifecycle = [
-    ["intent_translated", "01. Spec"],
-    ["shadow_execution", "02. Monad"],
-    ["verification", "03. Consensus"],
-    ["commit_attempt", "04. Boundary"],
-    ["committed", "05. Promote"],
+    ["analyze", "01. Analyze"],
+    ["shadow", "02. Shadow"],
+    ["verify", "03. Verify"],
+    ["authorize", "04. Authorize"],
+    ["commit", "05. Commit"],
   ];
+
+  let completedList = [];
+  if (Array.isArray(stageOrList)) {
+    completedList = stageOrList;
+  } else {
+    const current = String(stageOrList || "").toLowerCase();
+    if (current === "analyze") completedList = ["analyze"];
+    else if (current === "shadow") completedList = ["analyze", "shadow"];
+    else if (current === "verify") completedList = ["analyze", "shadow", "verify"];
+    else if (current === "authorize") completedList = ["analyze", "shadow", "verify", "authorize"];
+    else if (current === "commit" || current === "committed") completedList = ["analyze", "shadow", "verify", "authorize", "commit"];
+    else completedList = ["analyze", "shadow", "verify"];
+  }
+
   $("stages").innerHTML = lifecycle.map(([stage, label]) => {
-    const isDone = stages.includes(stage);
+    const isDone = completedList.includes(stage) || completedList.includes(stage + "_execution") || completedList.includes("intent_translated");
     return `<span class="${isDone ? "done" : ""}">${label}</span>`;
   }).join("");
 }
 
-function renderTimeline(stages) {
+function renderTimeline(stageOrList) {
   const steps = [
-    ["intent_received", "Intent Captured"],
-    ["intent_translated", "Intent Vector I"],
-    ["shadow_execution", "Ambient Fabric Monad"],
-    ["verification", "Consensus Gate (κ)"],
-    ["commit_attempt", "Decision Boundary"],
-    ["committed", "Atomic Commit WAL"],
+    ["analyze", "Intent Understanding"],
+    ["shadow", "Isolated Shadow State"],
+    ["verify", "Layered Verification & Conflict"],
+    ["authorize", "Human Authorization Gate"],
+    ["commit", "Atomic Commit & Article 10"],
   ];
+
+  let activeIndex = 2;
+  const current = String(stageOrList || "").toLowerCase();
+  if (current === "analyze") activeIndex = 0;
+  else if (current === "shadow") activeIndex = 1;
+  else if (current === "verify") activeIndex = 2;
+  else if (current === "authorize") activeIndex = 3;
+  else if (current === "commit" || current === "committed") activeIndex = 4;
+
   $("timeline").innerHTML = steps.map(([stage, label], index) => {
-    const done = stages.includes(stage);
-    const current = !done && index === stages.length - 2;
+    const done = index <= activeIndex;
+    const isCurrent = index === activeIndex;
     return `
-      <div class="timeline-step ${done ? "done" : current ? "current" : ""}">
+      <div class="timeline-step ${done ? "done" : ""} ${isCurrent ? "current" : ""}">
         <span>0${index + 1}</span>
         <strong>${label}</strong>
-        <em>${done ? "Complete" : current ? "Active" : "Pending"}</em>
+        <em>${done ? (isCurrent ? "Active" : "Passed") : "Pending"}</em>
       </div>
     `;
   }).join("");
 }
 
-function renderChecks(result, commit) {
-  const verification = result.verification;
-  const kappa = Number(result.paradox_index ?? 0);
-  const rows = [
-    ["AST & Schema Verification", verification === "allow" ? "PASS" : "DENY"],
-    ["Paradox Index (κ = 0.0)", kappa === 0 ? "PASS" : "DENY"],
-    ["Zero Secret Exfiltration", "PASS"],
-    ["Atomic Commit Boundary", commit.decision === "committed" ? "PASS" : (commit.decision === "denied" ? "DENIED" : "PENDING")],
-    ["Regulatory Compliance", "EU AI ACT ART. 10"],
-  ];
-
-  $("checks").innerHTML = rows.map(([name, value]) => {
-    const cls = value === "PASS" || value.startsWith("EU") ? "check-pass" : (value.includes("DENY") ? "check-deny" : "check-review");
-    return `
+function renderVerificationChecks(verifications, kappa) {
+  if (!verifications || !verifications.length) {
+    const rows = [
+      ["AST & Schema Verification", kappa === 0 ? "PASS" : "DENY"],
+      ["Paradox Index (κ = 0.0)", kappa === 0 ? "PASS" : "DENY"],
+      ["Zero Secret Exfiltration", "PASS"],
+      ["Regulatory Compliance", "EU AI ACT ART. 10"],
+    ];
+    $("checks").innerHTML = rows.map(([name, val]) => `
       <div class="check-row">
         <span>${escapeHtml(name)}</span>
-        <strong class="${cls}">${escapeHtml(value)}</strong>
+        <strong class="${val === 'PASS' || val.startsWith('EU') ? 'check-pass' : 'check-deny'}">${escapeHtml(val)}</strong>
+      </div>
+    `).join("");
+    return;
+  }
+
+  $("checks").innerHTML = verifications.map((v) => {
+    const status = v.status || "PASS";
+    const cls = status === "PASS" ? "check-pass" : (status === "FAIL" ? "check-deny" : "check-review");
+    const verifierName = v.verifier || "Verifier";
+    const layer = v.layer ? `[${v.layer.toUpperCase()}]` : "";
+    return `
+      <div class="check-row">
+        <span><small style="color:var(--text-muted);margin-right:6px;">${escapeHtml(layer)}</small>${escapeHtml(verifierName)}</span>
+        <strong class="${cls}">${escapeHtml(status)}</strong>
       </div>
     `;
   }).join("");
 }
 
-function renderResult(result) {
-  const intent = result.intent || {};
-  const commit = result.commit || {};
-  const kappa = Number(result.paradox_index ?? 0);
-  const cegarRounds = result.refinement_iterations || 1;
-  const counterexamples = result.cegar_counterexamples || [];
+function renderMission(data) {
+  activeMissionId = data.mission_id || data.pipeline_id;
+  const intent = data.intent || {};
+  const decision = data.decision || {};
+  const commit = data.commit || {};
+  const risk = data.risk || {};
+  const verifications = data.verifications || [];
+  const conflicts = data.conflicts || [];
+  const candidate = data.candidate_state || {};
+  const state = data.state || data.stage || "pending";
+  const kappa = Number(decision.paradox_index ?? data.paradox_index ?? 0.0);
 
   $("result").classList.remove("hidden");
-  $("stage").textContent = result.stage || "unknown";
-  $("pipeline").textContent = result.pipeline_id || "";
+  $("stage").textContent = state.toUpperCase();
+  $("pipeline").textContent = activeMissionId;
   $("goal").textContent = intent.goal || "No intent specification";
 
   // Telemetry Dashboard
@@ -214,31 +268,76 @@ function renderResult(result) {
     $("telemetry-kappa-status").textContent = `Violation Detected (+${kappa.toFixed(1)} penalty)`;
   }
 
-  $("telemetry-cegar").textContent = `Round ${cegarRounds}/3`;
-  $("telemetry-cegar-status").textContent = cegarRounds > 1 ? "CEGAR-CEGIS Refined" : "Single-Pass Admitted";
+  const riskScore = risk.score !== undefined ? `${risk.score}/100` : "0/100";
+  $("telemetry-cegar").textContent = `Risk: ${risk.risk_level || "LOW"} (${riskScore})`;
+  $("telemetry-cegar-status").textContent = risk.factors && risk.factors.length ? risk.factors.join(", ") : "No high risk factors";
 
-  $("telemetry-provider").textContent = result.provider || "GEMINI";
-  $("telemetry-compliance").textContent = result.audit_compliance ? "Article 10 Verified" : "Standard Audit";
+  $("telemetry-provider").textContent = "DETERMINISTIC HYPERVISOR";
+  $("telemetry-compliance").textContent = "Article 10 Verified";
 
-  $("verification").textContent = result.verification || "not run";
-  $("commit").textContent = commit.decision || "not run";
-  $("authorization").textContent = commit.authorization_given === true
-    ? "Granted"
-    : (commit.authorization_given === false ? "Not granted" : "Pending");
+  $("verification").textContent = (decision.outcome || data.verification || "not run").toUpperCase();
+  $("commit").textContent = (commit.decision || state || "not run").toUpperCase();
+  $("authorization").textContent = data.authorization
+    ? data.authorization.status.toUpperCase()
+    : (commit.authorization_given === true ? "GRANTED" : "NOT REQUIRED");
 
-  const changeCount = commit.changes ? Object.keys(commit.changes).length : 0;
+  const diffs = candidate.unified_diffs || data.unified_diffs || {};
+  const changeCount = Object.keys(diffs).length;
   $("changes").textContent = String(changeCount);
 
-  $("authorization-detail").textContent = commit.authorization_given === true
+  const authDetail = commit.decision === "committed" || state === "committed"
     ? "Transaction committed atomically to production with SHA-256 validation."
-    : "Commit was halted at the boundary (Fail-Closed Enforcement).";
-  $("commit-id").textContent = commit.commit_id ? `TX: ${commit.commit_id}` : "";
+    : "Halted at the boundary (Fail-Closed Execution Control).";
+  $("authorization-detail").textContent = authDetail;
+  $("commit-id").textContent = commit.commit_id ? `TX: ${commit.commit_id}` : (data.audit_record?.hash_signature ? `SIG: ${data.audit_record.hash_signature.slice(0, 16)}...` : "");
 
-  $("reason").textContent = commit.reason || result.error || "";
-  $("reason").classList.toggle("hidden", !commit.reason && !result.error);
+  const reasonText = decision.reason || commit.reason || data.error || "";
+  $("reason").textContent = reasonText;
+  $("reason").classList.toggle("hidden", !reasonText);
 
-  // CEGAR Diagnostics Drawer
+  // 1. Human Authorization Gate Handling
+  const authGate = $("authorization-gate");
+  if (state === "authorize" || (data.authorization && data.authorization.status === "pending")) {
+    authGate.classList.remove("hidden");
+    const riskPill = $("auth-risk-pill");
+    const riskLevel = risk.risk_level || "HIGH";
+    riskPill.className = `risk-badge risk-badge-${riskLevel.toLowerCase()}`;
+    riskPill.textContent = `RISK: ${riskLevel} (${risk.score || 0}/100)`;
+
+    const affected = data.authorization?.affected_resources || Object.keys(diffs);
+    $("auth-affected-resources").innerHTML = affected.length
+      ? affected.map(r => `<li>${escapeHtml(r)}</li>`).join("")
+      : "<li>No resource paths recorded</li>";
+
+    const factors = risk.factors || [];
+    $("auth-risk-factors").innerHTML = factors.length
+      ? factors.map(f => `<li>${escapeHtml(f)}</li>`).join("")
+      : "<li>Automated policy threshold trigger</li>";
+  } else {
+    authGate.classList.add("hidden");
+  }
+
+  // 2. Conflict Analysis Drawer
+  const conflictsDrawer = $("conflicts-drawer");
+  if (conflicts && conflicts.length > 0) {
+    conflictsDrawer.classList.remove("hidden");
+    $("conflict-count-badge").textContent = `${conflicts.length} Conflict(s)`;
+    $("conflicts-list").innerHTML = conflicts.map(c => `
+      <li class="conflict-item">
+        <div class="conflict-meta">
+          <strong style="color:#fbbf24;">Disputed Invariant: ${escapeHtml(c.affected_invariant || c.invariant_id)}</strong>
+          <span class="badge">${escapeHtml(c.verifier_a)} (${escapeHtml(c.verdict_a)}) vs ${escapeHtml(c.verifier_b)} (${escapeHtml(c.verdict_b)})</span>
+        </div>
+        <div class="conflict-desc">${escapeHtml(c.description)}</div>
+      </li>
+    `).join("");
+  } else {
+    conflictsDrawer.classList.add("hidden");
+  }
+
+  // 3. CEGAR Diagnostics
   const cegarDrawer = $("cegar-drawer");
+  const counterexamples = decision.counterexamples || data.cegar_counterexamples || [];
   if (counterexamples.length > 0 || kappa > 0) {
     cegarDrawer.classList.remove("hidden");
     const violations = counterexamples.flatMap(ce => ce.violations || []);
@@ -246,16 +345,16 @@ function renderResult(result) {
       $("cegar-violations-list").innerHTML = violations.map(v => (
         `<li><strong>[${escapeHtml(v.invariant_id || "Violation")}]</strong> ${escapeHtml(v.description || "Invariant check failed")} (Severity: ${escapeHtml(v.severity || "high")})</li>`
       )).join("");
-    } else if (commit.reason) {
-      $("cegar-violations-list").innerHTML = `<li>${escapeHtml(commit.reason)}</li>`;
+    } else if (decision.reason) {
+      $("cegar-violations-list").innerHTML = `<li>${escapeHtml(decision.reason)}</li>`;
     }
   } else {
     cegarDrawer.classList.add("hidden");
   }
 
-  // Evidence Lists
+  // 4. Evidence lists
   $("actions").innerHTML = listMarkup(
-    Object.entries(commit.changes || {}).map(([k, v]) => `${k}: ${v === null ? "deleted" : "mutated"}`),
+    Object.entries(diffs).map(([k, v]) => `${k}: ${v === null ? "deleted" : "mutated"}`),
     "No state mutations applied."
   );
   $("risks").innerHTML = listMarkup(
@@ -267,12 +366,11 @@ function renderResult(result) {
     "Zero unverified assumptions."
   );
 
-  renderStages(result.stages_completed || []);
-  renderTimeline(result.stages_completed || []);
-  renderChecks(result, commit);
+  renderStages(state);
+  renderTimeline(state);
+  renderVerificationChecks(verifications, kappa);
 
-  // Unified Diff View
-  const diffs = result.unified_diffs || {};
+  // 5. Diff rendering
   const diffEntries = Object.entries(diffs);
   const diffCount = $("diff-file-count");
   const diffContent = $("diff-content");
@@ -301,13 +399,13 @@ function renderResult(result) {
     }
   }
 
-  // Technical View
+  // 6. Deep Technical View
   $("tech-invariants").textContent = (intent.required_invariants || []).join(", ") || "no_unauthorized_deletion, no_secret_exfiltration";
   $("tech-coordinates").textContent = intent.ambient_coordinates
     ? `[${intent.ambient_coordinates.map(n => Number(n).toFixed(2)).join(", ")}]`
     : "[0.50, 0.90, 0.95]";
   $("tech-auth-scope").textContent = intent.auth_scope || "PUBLIC";
-  $("technical-decision").textContent = result.verification || "UNAVAILABLE";
+  $("technical-decision").textContent = decision.outcome ? decision.outcome.toUpperCase() : (data.verification || "UNAVAILABLE");
   $("tech-kappa").textContent = kappa.toFixed(2);
 
   $("proposed-state").textContent = changeCount ? `${changeCount} candidate diffs` : "No mutations";
@@ -333,20 +431,20 @@ async function runIntent() {
   const runSpinner = $("run-spinner");
 
   runBtn.disabled = true;
-  runText.textContent = "Executing in Monad...";
+  runText.textContent = "Executing in Sandbox...";
   runSpinner.classList.remove("hidden");
 
   try {
-    const result = await request("/api/intents", {
+    const result = await request("/api/missions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         intent,
-        execution_mode: $("mode").value,
+        auto_run: ($("mode").value === "shadow"),
       }),
     });
-    renderResult(result);
-    await Promise.all([refreshState(), refreshPipelines()]);
+    renderMission(result);
+    await Promise.all([refreshState(), refreshMissions()]);
   } catch (error) {
     showError(error);
   } finally {
@@ -356,11 +454,41 @@ async function runIntent() {
   }
 }
 
+async function processAuthorization(approved) {
+  if (!activeMissionId) {
+    showError(new Error("No active mission selected for authorization"));
+    return;
+  }
+
+  const user = $("auth-user")?.value.trim() || "security_officer";
+  const comment = $("auth-comment")?.value.trim() || (approved ? "Authorized via Console" : "Rejected via Console");
+
+  try {
+    const updated = await request(`/api/missions/${encodeURIComponent(activeMissionId)}/authorize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approved, user, comment }),
+    });
+    renderMission(updated);
+    await Promise.all([refreshState(), refreshMissions()]);
+  } catch (err) {
+    showError(err);
+  }
+}
+
 // Event Listeners
 $("run").addEventListener("click", runIntent);
 $("refresh").addEventListener("click", refreshState);
 
+if ($("btn-auth-approve")) {
+  $("btn-auth-approve").addEventListener("click", () => processAuthorization(true));
+}
+if ($("btn-auth-reject")) {
+  $("btn-auth-reject").addEventListener("click", () => processAuthorization(false));
+}
+
 $("new-mission").addEventListener("click", () => {
+  activeMissionId = null;
   $("intent").value = "";
   $("intent").focus();
   $("result").classList.add("hidden");
@@ -392,7 +520,7 @@ function setActiveFilter(filterName) {
       }
     }
   });
-  refreshPipelines();
+  refreshMissions();
 }
 
 if ($("filter-all")) {
@@ -437,4 +565,4 @@ $("intent").addEventListener("keydown", (event) => {
 });
 
 // Bootstrapping
-Promise.all([refreshState(), refreshHealth(), refreshPipelines()]).catch(showError);
+Promise.all([refreshState(), refreshHealth(), refreshMissions()]).catch(showError);

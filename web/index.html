@@ -188,6 +188,54 @@
 
             <div id="reason" class="notice hidden"></div>
 
+            <!-- Interactive Human Authorization Gate -->
+            <div id="authorization-gate" class="authorization-gate-panel hidden">
+              <div class="auth-gate-header">
+                <div class="auth-gate-title">
+                  <span class="auth-icon">&#9888;</span>
+                  <div>
+                    <h3>Human Authorization Gate</h3>
+                    <p class="auth-subtitle">Proposed state mutation has exceeded risk/policy threshold and requires explicit human approval before atomic commit.</p>
+                  </div>
+                </div>
+                <span id="auth-risk-pill" class="risk-badge risk-badge-high">RISK: HIGH</span>
+              </div>
+
+              <div class="auth-summary-grid">
+                <div>
+                  <span class="label">Affected Resources</span>
+                  <ul id="auth-affected-resources" class="auth-resource-list"></ul>
+                </div>
+                <div>
+                  <span class="label">Triggered Risk Factors</span>
+                  <ul id="auth-risk-factors" class="auth-risk-list"></ul>
+                </div>
+              </div>
+
+              <div class="auth-controls">
+                <div class="auth-input-group">
+                  <input type="text" id="auth-user" placeholder="Authorizer Identity (e.g. security_officer)" value="security_officer" />
+                  <input type="text" id="auth-comment" placeholder="Authorization Rationale or Compliance Note" />
+                </div>
+                <div class="auth-actions">
+                  <button id="btn-auth-reject" type="button" class="btn-gate-reject">Reject &amp; Annihilate</button>
+                  <button id="btn-auth-approve" type="button" class="btn-gate-approve">Authorize &amp; Commit</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Conflicts Drawer (First-Class Disagreement Handling) -->
+            <div id="conflicts-drawer" class="conflicts-drawer hidden">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">First-Class Product Event</p>
+                  <h3>Verifier Disagreement &amp; Conflict Analysis</h3>
+                </div>
+                <span class="badge badge-warning" id="conflict-count-badge">0 Conflicts</span>
+              </div>
+              <ul id="conflicts-list" class="conflicts-list"></ul>
+            </div>
+
             <!-- CEGAR Counterexamples Drawer (Visible when violations occurred) -->
             <div id="cegar-drawer" class="cegar-drawer hidden">
               <div class="section-head">

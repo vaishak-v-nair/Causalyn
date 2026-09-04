@@ -6,7 +6,13 @@ from typing import Any, Callable
 
 from fastapi import APIRouter, HTTPException
 
-from .contracts import IntentRequest, InterceptActionRequest, InterceptActionResponse
+from .contracts import (
+    AuthorizeMissionRequest,
+    CreateMissionRequest,
+    IntentRequest,
+    InterceptActionRequest,
+    InterceptActionResponse,
+)
 from .responses import HealthResponse, IntentResponse, PipelinesResponse, StateResponse
 from .services import BackendService
 
@@ -29,12 +35,135 @@ def create_router(
         return service.state()
 
     @router.get("/missions")
-    def missions() -> list[dict[str, Any]]:
+    def list_missions() -> list[dict[str, Any]]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        domain_missions = engine.list_missions(50)
+        if domain_missions:
+            return domain_missions
         from ..storage.repository import get_audit_repository
         repo = get_audit_repository()
         if hasattr(repo, "get_causalyn_missions"):
             return repo.get_causalyn_missions(50)
         return []
+
+    @router.post("/missions")
+    def create_mission(request: CreateMissionRequest) -> dict[str, Any]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        if request.auto_run:
+            mission = engine.run_mission(
+                intent_text=request.intent,
+                target_path=request.target_path,
+                action_type=request.action_type,
+                payload=request.payload,
+                auto_commit_if_allowed=True,
+            )
+        else:
+            mission = engine.analyze_intent(
+                intent_text=request.intent,
+                target_path=request.target_path,
+                action_type=request.action_type,
+                payload=request.payload,
+            )
+        return mission.to_dict()
+
+    @router.get("/missions/{mission_id}")
+    def get_mission_detail(mission_id: str) -> dict[str, Any]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        mission = engine.get_mission(mission_id)
+        if not mission:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "mission_not_found", "message": f"Mission not found: {mission_id}"},
+            )
+        return mission.to_dict()
+
+    @router.post("/missions/{mission_id}/run")
+    def run_mission_flow(mission_id: str) -> dict[str, Any]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        mission = engine.get_mission(mission_id)
+        if not mission:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "mission_not_found", "message": f"Mission not found: {mission_id}"},
+            )
+        engine.execute_shadow(mission)
+        engine.verify_and_decide(mission)
+        from ..domain.models import DecisionOutcome
+        if mission.decision and mission.decision.outcome == DecisionOutcome.ALLOW:
+            engine.commit_mission(mission_id)
+        updated = engine.get_mission(mission_id) or mission
+        return updated.to_dict()
+
+    @router.post("/missions/{mission_id}/authorize")
+    def authorize_mission(mission_id: str, request: AuthorizeMissionRequest) -> dict[str, Any]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        try:
+            mission = engine.authorize_mission(
+                mission_id=mission_id,
+                approved=request.approved,
+                user=request.user,
+                comment=request.comment,
+            )
+            return mission.to_dict()
+        except KeyError:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "mission_not_found", "message": f"Mission not found: {mission_id}"},
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "invalid_authorization", "message": str(e)},
+            )
+
+    @router.post("/missions/{mission_id}/commit")
+    def commit_mission(mission_id: str) -> dict[str, Any]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        try:
+            mission = engine.commit_mission(mission_id)
+            return mission.to_dict()
+        except KeyError:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "mission_not_found", "message": f"Mission not found: {mission_id}"},
+            )
+        except PermissionError as e:
+            raise HTTPException(
+                status_code=403,
+                detail={"code": "commit_forbidden", "message": str(e)},
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "commit_conflict", "message": str(e)},
+            )
+
+    @router.get("/missions/{mission_id}/audit")
+    def get_mission_audit(mission_id: str) -> dict[str, Any]:
+        from ..engine.mission_engine import MissionEngine
+        engine = MissionEngine(world_state_manager=service.world_state)
+        mission = engine.get_mission(mission_id)
+        if not mission:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "mission_not_found", "message": f"Mission not found: {mission_id}"},
+            )
+        return {
+            "mission_id": mission.mission_id,
+            "state": mission.state.value if hasattr(mission.state, "value") else str(mission.state),
+            "decision": mission.decision.to_dict() if mission.decision else None,
+            "risk": mission.risk.to_dict() if mission.risk else None,
+            "verifications": [v.to_dict() for v in mission.verifications],
+            "conflicts": [c.to_dict() for c in mission.conflicts],
+            "audit_record": mission.audit_record.to_dict() if mission.audit_record else None,
+            "commit": mission.commit.to_dict() if mission.commit else None,
+        }
 
 
     @router.get("/pipelines", response_model=PipelinesResponse)

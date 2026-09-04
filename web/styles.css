@@ -948,3 +948,220 @@ footer {
   .technical-grid { grid-template-columns: 1fr; }
   .timeline { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ==========================================================================
+   Human Authorization Gate & Disagreement Conflict Styles
+   ========================================================================== */
+.authorization-gate-panel {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, rgba(13, 18, 31, 0.95) 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.12);
+}
+
+.auth-gate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.auth-gate-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-icon {
+  font-size: 1.6rem;
+  color: #fbbf24;
+}
+
+.auth-gate-title h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.auth-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.auth-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 14px;
+  background: rgba(7, 9, 14, 0.6);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.auth-resource-list, .auth-risk-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+}
+
+.auth-resource-list li {
+  color: var(--cyan);
+}
+
+.auth-risk-list li {
+  color: #fca5a5;
+}
+
+.auth-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-input-group {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 10px;
+}
+
+.auth-input-group input {
+  background: rgba(7, 9, 14, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #edf1ff;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.auth-input-group input:focus {
+  border-color: var(--amber);
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-gate-approve {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  border: none;
+  padding: 9px 18px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-gate-approve:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-gate-reject {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  padding: 9px 18px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-gate-reject:hover {
+  background: rgba(239, 68, 68, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Conflicts Drawer */
+.conflicts-drawer {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.conflicts-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conflict-item {
+  background: rgba(7, 9, 14, 0.7);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conflict-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+
+.conflict-desc {
+  font-size: 0.82rem;
+  color: #fca5a5;
+}
+
+/* Risk Badges */
+.risk-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.08em;
+}
+
+.risk-badge-low {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.risk-badge-medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.risk-badge-high {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.risk-badge-critical {
+  background: rgba(220, 38, 38, 0.3);
+  color: #fca5a5;
+  border: 1px solid #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}

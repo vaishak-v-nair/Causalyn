@@ -12,6 +12,7 @@ from enum import Enum
 from typing import List, Dict, Any, Callable, Optional, Tuple
 from ..model.world_state import WorldState
 from ..gating.consensus import ConsensusGate, Decision
+from ..domain.models import VerificationEvidence, VerifierLayer
 
 
 class InvariantViolation(Exception):
@@ -341,6 +342,82 @@ class VerificationEngine:
             "violations": violations,
             "remediation_guidance": remediations,
         }
+
+    def evaluate_layered_evidence(
+        self, before: WorldState, after: WorldState
+    ) -> List[VerificationEvidence]:
+        """Evaluate state transition across verification layers returning structured evidence.
+
+        Layers:
+        - DETERMINISTIC: unauthorized deletion, null byte, directory traversal
+        - POLICY: protected files immutability, auth scope policies
+        - STRUCTURAL: AST parsing, JSON/YAML schema validation
+        - TEST: test preservation, syntactic regressions
+        - ADVERSARIAL: secret exfiltration, dangerous RCE/code injections
+        - MULTI_MODEL: consensus between verifier pairs/models
+        """
+        evidence: List[VerificationEvidence] = []
+        import time
+
+        for invariant in self.invariants:
+            inv_id = invariant.get("id", "unknown")
+            desc = invariant.get("description", "")
+            severity = invariant.get("severity", "medium")
+            base_penalty = 20.0 if severity == "critical" else (10.0 if severity == "high" else 5.0)
+
+            # Map invariant ID to default Layer
+            if "deletion" in inv_id or "traversal" in inv_id:
+                layer = VerifierLayer.DETERMINISTIC
+            elif "immutable" in inv_id or "policy" in inv_id:
+                layer = VerifierLayer.POLICY
+            elif "schema" in inv_id:
+                layer = VerifierLayer.STRUCTURAL
+            elif "test" in inv_id:
+                layer = VerifierLayer.TEST
+            elif "secret" in inv_id or "rce" in inv_id:
+                layer = VerifierLayer.ADVERSARIAL
+            else:
+                layer = VerifierLayer.POLICY
+
+            verifiers = invariant.get("verifiers", [])
+            for idx, (v_func, v_name) in enumerate(verifiers):
+                v_label = f"{inv_id}:{v_name or f'verifier_{idx+1}'}"
+                try:
+                    res = v_func(before, after)
+                    if res is True:
+                        status = "PASS"
+                        penalty = 0.0
+                        msg = f"Holds: {desc}"
+                    elif res is False:
+                        status = "FAIL"
+                        penalty = base_penalty
+                        msg = f"Violation: {desc}"
+                    else:
+                        status = "UNCERTAIN"
+                        penalty = base_penalty / 2.0
+                        msg = f"Uncertain evaluation on: {desc}"
+                except Exception as e:
+                    status = "UNCERTAIN"
+                    penalty = base_penalty / 2.0
+                    msg = f"Verifier evaluation raised error: {e}"
+
+                evidence.append(
+                    VerificationEvidence(
+                        verifier=v_label,
+                        layer=layer,
+                        status=status,
+                        penalty=penalty,
+                        message=msg,
+                        details={
+                            "invariant_id": inv_id,
+                            "severity": severity,
+                            "verifier_name": v_name,
+                        },
+                        timestamp=time.time(),
+                    )
+                )
+
+        return evidence
 
 
 # Convenience function to create a verification engine with default invariants

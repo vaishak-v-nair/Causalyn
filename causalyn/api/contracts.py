@@ -65,3 +65,19 @@ class InterceptActionResponse(BaseModel):
     audit_hash: Optional[str] = None
     article_10_audit_id: Optional[str] = None
     unified_diffs: Dict[str, str] = Field(default_factory=dict)
+
+
+class CreateMissionRequest(BaseModel):
+    """Payload for initiating a new Mission."""
+    intent: str = Field(..., min_length=1, max_length=4000, description="Consequential task or intent description")
+    target_path: Optional[str] = Field(None, description="Target file or resource path")
+    action_type: str = Field("file_write", description="Proposed action type")
+    payload: Dict[str, Any] = Field(default_factory=dict, description="Proposed mutation payload (e.g. content/code)")
+    auto_run: bool = Field(True, description="Whether to immediately run shadow execution and verification")
+
+
+class AuthorizeMissionRequest(BaseModel):
+    """Payload for human authorization gate."""
+    approved: bool = Field(..., description="True to authorize, False to reject")
+    user: str = Field("security_officer", description="Identity of authorizer")
+    comment: Optional[str] = Field(None, description="Audit rationale or commentary")
