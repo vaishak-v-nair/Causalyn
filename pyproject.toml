@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causalyn"
+version = "0.2.0"
+description = "Transactional Control Plane for Autonomous AI — Constraint-Gated Shadow Execution"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Vaishak V Nair"},
+]
+keywords = ["ai-safety", "autonomous-agents", "execution-hypervisor", "formal-verification", "shadow-execution"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "fastapi>=0.110,<1",
+    "pydantic>=2,<3",
+    "uvicorn>=0.27,<1",
+    "PyYAML>=6,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+    "python-dotenv>=1",
+]
+llm = [
+    "python-dotenv>=1",
+]
+
+[project.scripts]
+causalyn = "causalyn.cli:main"
+
+[project.urls]
+Repository = "https://github.com/vaishak-v-nair/Causalyn"
+
+[tool.setuptools.packages.find]
+include = ["causalyn*", "epoch_v*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "epoch_v/tests"]
+pythonpath = ["."]

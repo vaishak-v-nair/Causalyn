@@ -1,11 +1,35 @@
-.env
-.venv
-docs/
-temp_out/
-AGENTS.md
-SOURCE_SUMMARY.md
-error.txt
-test_run.py
+# Python
 __pycache__/
 *.pyc
-runtime/
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Runtime artifacts (generated at startup, not source)
+runtime/causalyn.sqlite3
+runtime/commit_history.jsonl
+runtime/benchmarks/
+runtime/compliance/
+
+# Environment & secrets
+.env
+
+# IDE / tool specific
+.claude/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store

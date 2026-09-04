@@ -1,0 +1,97 @@
+# Machine-readable enumerations for Epoch-V Agent OS.
+# Normative. Agents MUST use these values, not synonyms.
+
+rfc2119: [MUST, MUST_NOT, SHOULD, MAY]
+
+epistemic_class:
+  - FACT            # Observable in repo, tests, logs, or named external authority with citation
+  - SOURCE          # Stated in a listed source document; not thereby true of the world
+  - ASSUMPTION      # Taken as true for a task; not established
+  - INFERENCE       # Derived from SOURCE/FACT/ASSUMPTION by stated reasoning
+  - IMPLEMENTATION  # Engineering choice or analogue, not the theory itself
+  - HYPOTHESIS      # Testable claim not yet settled by recorded evidence
+  - UNVALIDATED     # Formal or informal statement lacking required test or proof
+  - PROVEN          # Reproducible experiment or valid proof recorded in repo evidence
+  - BLOCKED         # Cannot proceed without missing input, authority, or safety condition
+
+# PROVEN is forbidden unless evidence_ref is non-empty and independently checkable.
+
+task_stage:
+  - UNDERSTAND
+  - EXTRACT_CONSTRAINTS
+  - INSPECT_EXISTING_STATE
+  - IDENTIFY_UNKNOWNS
+  - FORM_HYPOTHESIS
+  - DESIGN
+  - IMPLEMENT
+  - TEST
+  - ATTACK
+  - VALIDATE
+  - RECORD_EVIDENCE
+  - HANDOFF_OR_COMMIT
+
+skip_justification:
+  - NOT_APPLICABLE
+  - ALREADY_SATISFIED
+  - BLOCKED_UPSTREAM
+  - HUMAN_WAIVER
+  - UNSAFE_TO_EXECUTE
+
+# HUMAN_WAIVER requires human_id and waiver_id. Agents MUST_NOT self-issue waivers.
+
+gate_decision:
+  - ALLOW
+  - DENY
+  - ESCALATE
+
+# Uncertainty MUST_NOT map to ALLOW.
+
+agent_role:
+  - human
+  - orchestrator
+  - architect
+  - researcher
+  - builder
+  - adversary
+  - validator
+  - release
+
+maturity:
+  - M0_CONCEPT
+  - M1_TOY_PROTOTYPE
+  - M2_SYNTHETIC_BENCHMARK
+  - M3_REAL_SYSTEM
+  - M4_SAFE_STAGING
+  - M5_PRODUCTION_CANDIDATE
+
+mutation_class:
+  - READ_ONLY
+  - LOCAL_SANDBOX
+  - REPO_WRITE
+  - EXTERNAL_SIDE_EFFECT
+  - IRREVERSIBLE
+
+failure_class:
+  - UNCERTAIN
+  - MISSING_INFORMATION
+  - CONTRADICTORY_REQUIREMENTS
+  - TEST_FAILED
+  - UNSAFE_STATE
+  - NON_REPRODUCIBLE
+  - AGENT_DISAGREEMENT
+  - TOOL_FAILURE
+  - AUTHORIZATION_MISSING
+  - SCOPE_EXCEEDED
+
+handoff_status:
+  - ACCEPTED
+  - REJECTED
+  - RETURNED
+  - ESCALATED
+
+claim_strength:
+  - NONE
+  - WEAK
+  - MODERATE
+  - STRONG
+  - PROVEN

@@ -1,9 +1,9 @@
 import unittest
 from types import SimpleNamespace
 
-from source.commit.boundary import CommitStatus
-from source.services.mission_lifecycle import Decision, MissionLifecycleService, MissionState
-from source.verification.invariant_checker import Decision as VerificationDecision
+from causalyn.commit.boundary import CommitStatus
+from causalyn.services.mission_lifecycle import Decision, MissionLifecycleService, MissionState
+from causalyn.verification.invariant_checker import Decision as VerificationDecision
 
 
 class FakeOrchestrator:

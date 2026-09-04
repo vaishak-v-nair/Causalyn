@@ -2,8 +2,8 @@ import os
 import unittest
 from unittest.mock import patch
 
-from source.config import RuntimeSettings
-from source.model.provider import (
+from causalyn.config import RuntimeSettings
+from causalyn.model.provider import (
     DisabledModelProvider,
     ModelProviderDisabled,
     ModelRequest,

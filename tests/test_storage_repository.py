@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from source.storage.repository import TransactionalAuditRepository
+from causalyn.storage.repository import TransactionalAuditRepository
 
 
 class TestTransactionalAuditRepository(unittest.TestCase):

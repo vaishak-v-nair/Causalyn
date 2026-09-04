@@ -2,9 +2,9 @@ import unittest
 import tempfile
 import os
 import shutil
-from source.model.world_state import WorldStateManager
-from source.harness.context import HarnessContext
-from source.shadow.executor import ShadowExecutor
+from causalyn.model.world_state import WorldStateManager
+from causalyn.harness.context import HarnessContext
+from causalyn.shadow.executor import ShadowExecutor
 
 class TestHarnessContext(unittest.TestCase):
     def setUp(self):

@@ -1,0 +1,96 @@
+# Universal Agent Contract
+# Every agent turn that produces a decision, artifact, or mutation MUST emit this object.
+# Unknown fields MUST be present with null and an epistemic_class of BLOCKED or UNKNOWN via unknowns[].
+
+identity:
+  agent_id: string
+  role: {enum_ref: enums.agent_role}
+  model_id: string | null          # UNKNOWN if unavailable
+  session_id: string
+  parent_task_id: string | null
+
+mission: string                    # one sentence; no marketing
+
+task:
+  task_id: string
+  title: string
+  assigned_by: string
+  mutation_class: {enum_ref: enums.mutation_class}
+  current_stage: {enum_ref: enums.task_stage}
+  skipped_stages:
+    - stage: {enum_ref: enums.task_stage}
+      justification: {enum_ref: enums.skip_justification}
+      reason: string
+
+context:
+  source_refs: [string]
+  code_refs: [string]
+  prior_handoff_id: string | null
+  relevant_decision_ids: [string]
+
+constraints:
+  must: [string]
+  must_not: [string]
+  should: [string]
+
+assumptions:
+  - id: string
+    statement: string
+    epistemic_class: ASSUMPTION
+    impact_if_false: string
+
+unknowns:
+  - id: string
+    statement: string
+    blocks_progress: boolean
+    required_to_resolve: string
+
+evidence:
+  - id: string
+    claim: string
+    mechanism: string | null
+    evidence_ref: string | null
+    test_ref: string | null
+    result: string | null
+    epistemic_class: {enum_ref: enums.epistemic_class}
+    claim_strength: {enum_ref: enums.claim_strength}
+
+actions:
+  planned: [string]
+  executed: [string]
+  not_executed:
+    - action: string
+      reason: string
+
+artifacts:
+  - path: string
+    kind: string
+    sha_or_null: string | null
+
+tests:
+  - name: string
+    command: string | null
+    result: PASS | FAIL | NOT_RUN | BLOCKED
+    output_ref: string | null
+
+risks:
+  - id: string
+    statement: string
+    severity: LOW | MEDIUM | HIGH | CRITICAL
+    mitigations: [string]
+
+decision:
+  gate: {enum_ref: enums.gate_decision, additional: [CONTINUE, RETURN, COMPLETE]}
+  summary: string
+
+confidence:
+  value: number                    # 0.0–1.0
+  basis: string                    # MUST cite evidence ids; MUST_NOT be "looks correct"
+  # Invalid if evidence is empty and value > 0.3
+
+blocking_reason: string | null     # required if decision is ESCALATE or stage BLOCKED
+
+next_handoff:
+  to_role: {enum_ref: enums.agent_role, additional: [human]}
+  handoff_id: string | null
+  required_action: string

@@ -1,0 +1,35 @@
+name: Causalyn Shadow Verification (Epoch-V / VPSN)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Consensus Verification Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute Causalyn Continuous Verification
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          git diff origin/${{ github.base_ref || 'main' }}...HEAD > /tmp/pr.diff
+          python -m causalyn.cli ci verify-pr --diff /tmp/pr.diff --pr-number "${PR_NUMBER:-1}" --commit-sha "$COMMIT_SHA"

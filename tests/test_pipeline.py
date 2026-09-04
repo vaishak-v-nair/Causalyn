@@ -2,12 +2,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from source.commit.boundary import CommitBoundary, CommitStatus
-from source.failure_pattern.dataset import FailurePatternDataset
-from source.orchestrator.orchestrator import AIOrchestrator, OrchestrationStage
-from source.shadow.executor import ShadowExecutor
-from source.verification.invariant_checker import Decision, create_default_verification_engine
-from source.model.world_state import WorldStateManager
+from causalyn.commit.boundary import CommitBoundary, CommitStatus
+from causalyn.failure_pattern.dataset import FailurePatternDataset
+from causalyn.orchestrator.orchestrator import AIOrchestrator, OrchestrationStage
+from causalyn.shadow.executor import ShadowExecutor
+from causalyn.verification.invariant_checker import Decision, create_default_verification_engine
+from causalyn.model.world_state import WorldStateManager
 
 
 class TestPrototypePipeline(unittest.TestCase):
