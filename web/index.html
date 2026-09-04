@@ -89,6 +89,9 @@
             <div class="presets-container">
               <span class="presets-label">Benchmark &amp; Adversarial Presets:</span>
               <div class="presets-bar">
+                <button type="button" class="preset-btn danger demo-preset-btn" data-intent="Clean up the config files." style="border-color: #ef4444; background: rgba(239, 68, 68, 0.12);">
+                  <span class="preset-badge attack" style="background: #ef4444; color: #fff;">3-STEP DEMO</span> Clean up the config files.
+                </button>
                 <button type="button" class="preset-btn" data-intent="Update the public settings to enable feature_flag_v2 with true">
                   <span class="preset-badge safe">SAFE</span> Feature Flag Update
                 </button>
@@ -187,6 +190,27 @@
             </div>
 
             <div id="reason" class="notice hidden"></div>
+
+            <!-- Execution State Flow Banner (3-Step Demo & Interception Trace) -->
+            <div id="execution-flow-banner" class="execution-flow-banner hidden">
+              <div class="flow-header">
+                <span class="flow-badge">PROTOTYPE DEMO INTERCEPTION TRACE</span>
+                <span class="flow-verdict" id="flow-verdict">Consensus Gate: DENY</span>
+              </div>
+              <div class="flow-steps">
+                <span class="flow-step">Agent Action</span>
+                <span class="flow-arrow">&rarr;</span>
+                <span class="flow-step">Shadow Execution</span>
+                <span class="flow-arrow">&rarr;</span>
+                <span class="flow-step flow-warning">Credential Leak Detected</span>
+                <span class="flow-arrow">&rarr;</span>
+                <span class="flow-step flow-danger">&kappa; Increased (<span id="flow-kappa">20.00</span>)</span>
+                <span class="flow-arrow">&rarr;</span>
+                <span class="flow-step flow-deny">Consensus Gate: DENY</span>
+                <span class="flow-arrow">&rarr;</span>
+                <span class="flow-step flow-blocked">Production Write Blocked</span>
+              </div>
+            </div>
 
             <!-- Interactive Human Authorization Gate -->
             <div id="authorization-gate" class="authorization-gate-panel hidden">

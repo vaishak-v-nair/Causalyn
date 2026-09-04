@@ -18,6 +18,7 @@ runtime/causalyn.sqlite3
 runtime/commit_history.jsonl
 runtime/benchmarks/
 runtime/compliance/
+runtime/demo_workspace/
 
 # Environment & secrets
 .env

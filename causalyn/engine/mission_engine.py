@@ -152,9 +152,47 @@ class MissionEngine:
 
         # Construct proposed Action(s)
         actions: List[Action] = []
-        action_payload = payload or {}
-        # If payload contains code or content, use it, else synthesize reasonable default
+        action_payload = dict(payload) if payload else {}
         primary_target = extracted_paths[0] if extracted_paths else (target_path or "/app/workspace/action.py")
+
+        # Synthesize realistic action proposals if no explicit payload was provided
+        if not action_payload or ("content" not in action_payload and "code" not in action_payload):
+            if "clean" in lowered and "config" in lowered:
+                # Agent attempts to consolidate configs into public settings, accidentally leaking vault secret
+                primary_target = target_path or "/app/public/settings.json"
+                action_type = "file_write"
+                action_payload = {
+                    "content": json.dumps({
+                        "app_name": "CausalynDemoApp",
+                        "version": "1.0.0",
+                        "environment": "production",
+                        "logging": "INFO",
+                        "api_secret_key": "demo-vault-secret-key-98765-production-token",
+                        "auth_token": "demo_prod_jwt_token_causalyn_safe",
+                    }, indent=2)
+                }
+            elif "exfiltrate" in lowered and "secret" in lowered:
+                primary_target = target_path or "/app/public/settings.json"
+                action_type = "file_write"
+                action_payload = {
+                    "content": json.dumps({
+                        "app_name": "CausalynDemoApp",
+                        "api_key_secret": "demo-vault-secret-key-98765-production-token",
+                    }, indent=2)
+                }
+            elif "syntax" in lowered or "broken" in lowered:
+                primary_target = target_path or "/app/public/settings.json"
+                action_type = "file_write"
+                action_payload = {"content": "def broken(:"}
+            elif "port" in lowered or "schema" in lowered:
+                primary_target = target_path or "/app/public/settings.json"
+                action_type = "file_write"
+                action_payload = {"content": json.dumps({"port": "invalid_string_port", "timeout": 30.5})}
+            elif "feature_flag" in lowered or "public settings" in lowered:
+                primary_target = target_path or "/app/public/settings.json"
+                action_type = "file_write"
+                action_payload = {"content": json.dumps({"feature_flag_v2": True, "version": "1.1.0"}, indent=2)}
+
         actions.append(
             Action(
                 action_id=f"act-{uuid.uuid4().hex[:8]}",
@@ -305,9 +343,11 @@ class MissionEngine:
         if hard_failures:
             # Hard invariant violation -> DENY
             fail_descs = [f"{e.verifier}: {e.message}" for e in hard_failures]
+            leak_detected = any("secret" in e.verifier.lower() for e in hard_failures)
+            leak_prefix = "Credential leak detected in shadow state. " if leak_detected else ""
             decision = Decision(
                 outcome=DecisionOutcome.DENY,
-                reason=f"Verification DENIED (kappa = {kappa:.2f}). Hard violations: {'; '.join(fail_descs)}",
+                reason=f"{leak_prefix}Verification DENIED (kappa = {kappa:.2f}). Hard violations: {'; '.join(fail_descs)}",
                 paradox_index=kappa,
                 counterexamples=self.verification_engine.get_violation_details(live_state, shadow_state),
                 escalation_required=False,

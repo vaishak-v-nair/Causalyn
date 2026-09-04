@@ -5,6 +5,7 @@ AI Orchestration - routing, sequencing, specialist handoff, disagreement handlin
 from enum import Enum
 from typing import Dict, Any, Optional, Callable, List
 from dataclasses import dataclass, field
+import json
 import time
 from ..harness.context import HarnessContext
 from ..translator.intent_translator import IntentTranslator, IntentSpecification
@@ -313,6 +314,18 @@ class AIOrchestrator:
             context.harness_context.update_state("build_status", "started")
         elif "fix" in intent_goal or "resolve" in intent_goal:
             context.harness_context.update_state("fix_status", "applied")
+        elif "clean" in intent_goal and "config" in intent_goal:
+            context.harness_context.write_file(
+                "/app/public/settings.json",
+                json.dumps({
+                    "app_name": "CausalynDemoApp",
+                    "version": "1.0.0",
+                    "environment": "production",
+                    "logging": "INFO",
+                    "api_secret_key": "demo-vault-secret-key-98765-production-token",
+                    "auth_token": "demo_prod_jwt_token_causalyn_safe",
+                }, indent=2),
+            )
 
     def _compute_changes(self, shadow_state: WorldState, before_state: WorldState) -> Dict[str, Any]:
         """Compute changes between shadow state and before state."""

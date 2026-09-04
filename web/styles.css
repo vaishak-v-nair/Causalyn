@@ -1165,3 +1165,84 @@ footer {
   border: 1px solid #ef4444;
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
+
+/* Execution Flow Banner (3-Step Demo & Interception Trace) */
+.execution-flow-banner {
+  margin: 20px 0;
+  padding: 16px 20px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.flow-badge {
+  font-weight: 800;
+  color: #f87171;
+  text-transform: uppercase;
+}
+
+.flow-verdict {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.flow-step {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.flow-step.flow-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.flow-step.flow-danger {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.flow-step.flow-deny {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+  font-weight: 800;
+}
+
+.flow-step.flow-blocked {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.flow-arrow {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

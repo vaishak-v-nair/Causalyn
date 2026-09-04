@@ -295,6 +295,19 @@ function renderMission(data) {
   $("reason").textContent = reasonText;
   $("reason").classList.toggle("hidden", !reasonText);
 
+  // Execution Flow Banner (Trace display)
+  const flowBanner = $("execution-flow-banner");
+  if (flowBanner) {
+    const isDeny = (decision.outcome && decision.outcome.toLowerCase() === "deny") || (state && state.toLowerCase() === "denied");
+    if (kappa > 0 || isDeny) {
+      flowBanner.classList.remove("hidden");
+      if ($("flow-kappa")) $("flow-kappa").textContent = kappa.toFixed(2);
+      if ($("flow-verdict")) $("flow-verdict").textContent = `Consensus Gate: ${(decision.outcome || "DENY").toUpperCase()}`;
+    } else {
+      flowBanner.classList.add("hidden");
+    }
+  }
+
   // 1. Human Authorization Gate Handling
   const authGate = $("authorization-gate");
   if (state === "authorize" || (data.authorization && data.authorization.status === "pending")) {
