@@ -35,6 +35,10 @@ runtime/demo_workspace/
 Thumbs.db
 .DS_Store
 
+# Presentation recording video binaries (use scripts/record_presentation.py to generate)
+causalyn_presentation_demo.mp4
+causalyn_presentation_demo.webp
+
 # Manim intermediate files
 **/partial_movie_files/
 backend/media/
