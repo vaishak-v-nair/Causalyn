@@ -83,7 +83,8 @@ function resetUI() {
   const banner = el.banner();
   if (banner) banner.classList.add('hidden');
   document.querySelectorAll('.panel-glass').forEach(p => p.classList.remove('primary-focus'));
-  setContinuumState(false);
+  setContinuumState(false, 0.0);
+  if (typeof setAudioTension === 'function') setAudioTension(0.0);
 }
 
 function playCinematicVideo(videoId) {
@@ -153,7 +154,8 @@ async function runEvaluation() {
     }
     if (k > 0) {
       setClass(el.badgeKappa, 'kappa-value danger');
-      setContinuumState(true);
+      setContinuumState(true, k);
+      if (typeof setAudioTension === 'function') setAudioTension(k);
       playCinematicVideo('anim-paradox');
     }
 
@@ -207,11 +209,41 @@ function initWebGLBackground() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const geometry = new THREE.PlaneGeometry(12, 12, 40, 40);
-  continuumMaterial = new THREE.MeshBasicMaterial({
-    color: 0x6366f1,
-    wireframe: true,
+  continuumMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      u_time: { value: 0.0 },
+      u_kappa: { value: 0.0 }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      #extension GL_OES_standard_derivatives : enable
+      uniform float u_time;
+      uniform float u_kappa;
+      varying vec2 vUv;
+
+      void main() {
+          vec2 p = vUv * 2.0 - 1.0;
+          
+          // Base symplectic grid lines
+          vec2 grid = abs(fract(p * 8.0 - 0.5) - 0.5) / fwidth(p * 8.0);
+          float line = min(grid.x, grid.y);
+          float c = 1.0 - min(line, 1.0);
+          
+          // Paradox curvature distortion driven by backend kappa
+          float curvature = sin(p.x * 6.0 + u_time * 2.0) * cos(p.y * 6.0 + u_time * 2.0) * u_kappa;
+          vec3 baseColor = mix(vec3(0.0, 0.95, 1.0), vec3(1.0, 0.1, 0.25), u_kappa);
+          
+          gl_FragColor = vec4(baseColor * (c + curvature), 0.85);
+      }
+    `,
     transparent: true,
-    opacity: 0.12,
+    wireframe: false
   });
 
   const plane = new THREE.Mesh(geometry, continuumMaterial);
@@ -225,6 +257,9 @@ function initWebGLBackground() {
   function animate() {
     requestAnimationFrame(animate);
     time += 0.008;
+    if (continuumMaterial.uniforms) {
+      continuumMaterial.uniforms.u_time.value = time;
+    }
 
     const positions = geometry.attributes.position;
     for (let i = 0; i < positions.count; i++) {
@@ -247,15 +282,146 @@ function initWebGLBackground() {
   });
 }
 
-function setContinuumState(isDanger) {
+function setContinuumState(isDanger, kappa = 1.0) {
   if (!continuumMaterial) return;
-  continuumMaterial.color.setHex(isDanger ? 0xff3f00 : 0x6366f1);
-  continuumMaterial.opacity = isDanger ? 0.28 : 0.12;
+  if (continuumMaterial.uniforms) {
+    // Animate kappa for smooth transition? Or direct set for instant reaction.
+    continuumMaterial.uniforms.u_kappa.value = isDanger ? kappa : 0.0;
+  }
+}
+
+/* ───────────────────── Procedural Haptics ───────────────────── */
+let audioCtx = null;
+let osc = null;
+let gainNode = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    osc = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.value = 40; // Base drone
+    gainNode.gain.value = 0.05; // Subtle
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function setAudioTension(kappa) {
+  if (!audioCtx || !osc) return;
+  const targetFreq = 40 + (kappa * 200);
+  osc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.1);
+  if (kappa === 0) {
+    gainNode.gain.setTargetAtTime(0.05, audioCtx.currentTime, 0.1);
+  }
+}
+
+function triggerAudioAnnihilation() {
+  if (!audioCtx) return;
+  
+  // Cut drone
+  gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01);
+  
+  // White noise burst
+  const bufferSize = audioCtx.sampleRate * 0.5; // 0.5 seconds
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+  
+  const noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = 'highpass';
+  noiseFilter.frequency.value = 1000;
+  
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+  
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(audioCtx.destination);
+  
+  noise.start();
 }
 
 /* ───────────────────── Initialization ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initWebGLBackground();
   resetUI();
-  document.getElementById('btn-causalyn')?.addEventListener('click', runEvaluation);
+  const evalBtn = document.getElementById('btn-causalyn');
+  if (evalBtn) {
+    evalBtn.addEventListener('click', () => {
+      initAudio();
+      runEvaluation();
+    });
+  }
+  initWebSocket();
 });
+
+/* ───────────────────── WebSocket Listener ───────────────────── */
+function initWebSocket() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws`;
+  
+  const ws = new WebSocket(wsUrl);
+  
+  ws.onopen = () => {
+    console.log('[WEBSOCKET] Connected to API Gateway (Async Streaming).');
+  };
+  
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('[WEBSOCKET] Received Payload:', data);
+      
+      if (data.type === 'paradox_spike') {
+        // Instantly trigger visual annihilation sequence
+        console.warn(`[PARADOX SPIKE] κ = ${data.kappa.toFixed(2)}! Triggering structural collapse!`);
+        
+        setText(el.badgeKappa, data.kappa.toFixed(2));
+        setClass(el.badgeKappa, 'kappa-value danger');
+        const bar = el.kappaBarFill();
+        if (bar) {
+          bar.style.width = '100%';
+          bar.className = 'kappa-bar-fill danger';
+        }
+        
+        setContinuumState(true, data.kappa);
+        setAudioTension(data.kappa);
+        if (data.kappa > 0) triggerAudioAnnihilation();
+
+        playCinematicVideo('anim-paradox');
+        playCinematicVideo('anim-nullify'); // Overlapping glitch effect
+        
+        const banner = el.banner();
+        const bannerText = el.bannerText();
+        if (banner && bannerText) {
+          banner.classList.remove('hidden');
+          banner.style.background = 'rgba(255, 63, 0, 0.1)';
+          banner.style.borderColor = 'var(--text-danger)';
+          bannerText.textContent = `🛡 CRITICAL: WebSocket intercepted Paradox Spike (κ = ${data.kappa.toFixed(2)})!`;
+          bannerText.style.color = 'var(--text-danger)';
+        }
+      }
+    } catch (e) {
+      console.error('[WEBSOCKET] Error parsing message:', e);
+    }
+  };
+  
+  ws.onclose = () => {
+    console.warn('[WEBSOCKET] Disconnected. Reconnecting in 3s...');
+    setTimeout(initWebSocket, 3000);
+  };
+}
+

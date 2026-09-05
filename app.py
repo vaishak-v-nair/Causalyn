@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
@@ -22,6 +22,7 @@ from causalyn.verification.invariant_checker import create_default_verification_
 from causalyn.model.world_state import WorldStateManager
 from causalyn.api.routes import create_router
 from causalyn.api.services import BackendService
+from causalyn.api.websocket_manager import ws_manager, trigger_semantic_interference_sync
 from causalyn.config import get_settings
 from causalyn.storage.pipeline_store import PipelineStore
 
@@ -143,6 +144,16 @@ async def request_context(request: Request, call_next):
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
+
+@api.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            # We just keep the connection alive, client doesn't need to send anything
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
 
 
 @api.exception_handler(HTTPException)

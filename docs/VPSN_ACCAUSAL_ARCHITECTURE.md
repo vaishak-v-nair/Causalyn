@@ -29,3 +29,10 @@ Standard Retrieval-Augmented Generation (RAG) fails because it retrieves *text*,
 The Causalyn runtime enforces the ultimate boundary condition for autonomous execution:
 $$S \in \mathcal{N}_{\text{semantic}} \iff \kappa(S) = 0$$
 If a proposed state violates the Intent Vector, the Vaishak Operator ($\Upsilon$) triggers instantaneous state collapse, annihilating the shadow fabric. The host environment remains mathematically flawless.
+
+## 4. Computational Bottlenecks and Optimization Realities
+To scale this theory into the foundational operating system for autonomous workflows, specific physical engineering constraints must be actively mitigated:
+
+* **The NP-Hard Verification Barrier:** SMT solvers provide absolute mathematical certainty but scale exponentially in processing time. As the Intent Vector grows, the $\kappa$-Engine will require aggressive heuristic filtering to prevent timeouts during complex architectural state evaluations.
+* **Overhead in the Ambient Fabric:** While a copy-on-write monad is the correct approach for sandboxing, simulating massive, deep dependency graphs across an entire agent swarm will demand highly optimized, bare-metal memory management (e.g., Rust-based memory arenas).
+* **Subjective Semantic Drift:** VPSN is mathematically flawless for deterministic constraints like database schemas, port configurations, and credential scoping. Bounding probabilistic or subjective logic where "correctness" is not strictly Boolean will require a bridge between rigid Z3 math and fuzzy logic evaluation.

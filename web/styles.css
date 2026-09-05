@@ -1,23 +1,23 @@
 :root {
-  --bg-core: #030509;
+  --bg-core: #05070B;
   --glass-bg: rgba(255, 255, 255, 0.015);
-  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(0, 243, 255, 0.15);
   --glass-highlight: rgba(255, 255, 255, 0.1);
   --shadow-deep: 0 24px 48px -12px rgba(0, 0, 0, 0.8);
   
   --text-main: #f1f5f9;
   --text-muted: #64748b;
-  --text-safe: #00ffaa;
-  --text-danger: #ff3f00;
+  --text-safe: #00F3FF;
+  --text-danger: #FF1E44;
   
-  --accent-primary: #ccff00;
-  --accent-shadow: rgba(204, 255, 0, 0.2);
-  --accent-indigo: #6366f1;
-  --accent-indigo-glow: rgba(99, 102, 241, 0.3);
+  --accent-primary: #00F3FF;
+  --accent-shadow: rgba(0, 243, 255, 0.2);
+  --accent-indigo: #00F3FF;
+  --accent-indigo-glow: rgba(0, 243, 255, 0.3);
   
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
-  --font-mono: 'Space Mono', monospace;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 * { box-sizing: border-box; }
@@ -223,8 +223,8 @@ body {
 /* Glass Panels */
 .panel-glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(32px) saturate(150%);
-  -webkit-backdrop-filter: blur(32px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   box-shadow: var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 0 20px rgba(255,255,255,0.02);

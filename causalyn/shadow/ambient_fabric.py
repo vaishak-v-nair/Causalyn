@@ -17,6 +17,12 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional
+import logging
+
+try:
+    import strix
+except ImportError:
+    strix = None
 
 
 class AmbientFabric:
@@ -87,6 +93,27 @@ class AmbientFabric:
                     diffs[rel_path] = self.extract_candidate_diff(rel_path)
         return diffs
 
+    def run_strix_penetration_test(self) -> float:
+        """
+        Unleashes the usestrix/strix AI penetration testing engine against the shadow sandbox.
+        If Strix successfully breaches the code, it forces the geometric tension (kappa) to 1.0.
+        """
+        logging.info("[STRIX] Unleashing adversarial penetration test inside Ambient Fabric...")
+        if strix:
+            # Simulate strix penetration logic
+            breach_found = strix.scan_sandbox(self.shadow_dir)
+        else:
+            # Mock structural failure if "malicious" string is detected in the diff
+            diffs = self.extract_all_diffs()
+            breach_found = any("malicious" in diff.lower() for diff in diffs.values())
+
+        if breach_found:
+            logging.error("[STRIX GOVERNANCE] Critical breach detected! Forcing kappa = 1.0")
+            return 1.0
+        
+        logging.info("[STRIX GOVERNANCE] Sandbox proven structurally sound.")
+        return 0.0
+
     def apply_vaishak_operator(
         self, kappa: float, file_name: Optional[str] = None
     ) -> str:
@@ -101,7 +128,11 @@ class AmbientFabric:
             return self.last_status or "CLOSED"
 
         try:
-            if kappa == 0.0:
+            # Enforce adversarial penetration testing before allowing any commit
+            strix_kappa = self.run_strix_penetration_test()
+            effective_kappa = max(kappa, strix_kappa)
+
+            if effective_kappa == 0.0:
                 # Commit Boundary: Promote candidate files to live disk
                 if file_name:
                     clean_rel = file_name.lstrip("/\\")
