@@ -10,81 +10,247 @@ description: >-
 
 This is not a simple checklist. This is a **Self-Reflective Reinforcement Learning (SRRL)** instruction protocol. As an AI Agent, you MUST obey these operational heuristics. This document grows by capturing past AI mistakes, enforcing defensive UI architecture, and demanding self-falsification before writing code.
 
+---
+
 ## 1. The SRRL Operational Protocol (MANDATORY)
 
 Before rendering UI or making structural layout changes, you must engage in Self-Reflection:
-1. **Introspection Phase:** Mentally simulate the DOM rendering of your code. Ask: "What happens if this container expands? Will `overflow-x-hidden` on a parent break `position: sticky` on a child? Are there any hidden 4000px gaps?"
-2. **Critique & Falsification:** Try to break your own design. Identify edge cases (mobile widths, ultra-wide screens, missing data states, loading states). 
-3. **Execution & Web Scraping:** After writing UI, you MUST utilize the `browser_subagent` to visually verify the layout. Do not trust your code output alone. If the screenshot reveals an error (e.g., a massive black void, horizontal overflow), you must extract DOM nodes, reflect on the mismatch, and retry.
-4. **No Placeholders:** Never generate generic `[Content goes here]` filler. Real design requires real, contextual layout.
+1. **Introspection Phase:** Mentally simulate the DOM rendering of your code. Ask: "What happens if this container expands? Will `overflow-x-hidden` on a parent break `position: sticky` on a child? Are there any hidden 4000px gaps? Will a fixed height overflow on 900px vertical viewports?"
+2. **Critique & Falsification:** Try to break your own design. Identify edge cases (laptop screens at 1920x945, ultra-wide monitors, missing backend connections, streaming token overflow, long variable names).
+3. **Execution & Web Scraping:** After writing UI, you MUST utilize the `browser_subagent` to visually verify the layout. Do not trust your code output alone. If the screenshot reveals an error (e.g., clipped panels, scrollbar inside scrollbar, broken canvas pointer events), you must extract DOM nodes, reflect on the mismatch, and repair it.
+4. **No Placeholders:** Never generate generic `[Content goes here]` filler. Real design requires real, contextual layout, authentic micro-diffs, real metrics, and functional controls.
+
+---
 
 ## 2. The AI Anti-Pattern Library (Learnings from Past Failures)
 
 Avoid these documented AI failure modes:
-- **The "Sticky-Void" Failure:** Do NOT apply `overflow: hidden`, `overflow-x-hidden`, or `overflow-y-hidden` to structural wrappers (like `<body>`, `<main>`, or root `<div>`) if any child components rely on `position: sticky`. It will break the sticky context and cause elements to instantly scroll out of view, leaving massive blank spaces.
-- **The "Boxed-In" SaaS Failure:** Do NOT wrap hero sections or dynamic data visualizations in constrained `.max-w-7xl.mx-auto` containers unless specifically building a text-heavy reading layout. Premium "Unknown Intelligence" designs stretch edge-to-edge. Let backgrounds bleed.
-- **The "Phantom Backend" Failure:** Never build a frontend that completely white-screens if the API is offline (e.g., `ServerSelectionTimeoutError` for MongoDB). Your React components must gracefully handle `AxiosError`, returning empty arrays and rendering striking, intentional Empty States (`NO ANOMALIES DETECTED`).
-- **The "Blind Animation" Failure:** When mapping framer-motion `useScroll` opacities (e.g., `useTransform(scrollYProgress, [0.2, 0.4], [0, 1])`), ensure there are no overlapping dead zones where opacity drops entirely to 0 for extended scroll durations, causing UI blackouts. Always cross-fade.
 
-## 3. Design Heuristics & Visual Identity (2026 Standards)
+- **The "Fixed Viewport Vertical Overflow" Failure:** In full-screen HUDs (`100vh`), if headers, command bars (`.playground-bar`), or docks are introduced without recalculating child grid heights, the grid spills past the screen boundary, creating double scrollbars or hiding bottom ledger cards. 
+  - *SRRL Rule:* When adding top bars, recalculate `.cockpit-grid` height: `height: calc(100vh - [total_header_height]px); min-height: 0; overflow: hidden;`.
+- **The "Pointer-Events Canvas Occlusion" Failure:** When placing a 3D WebGL background canvas (e.g. Three.js `#manifold-canvas`) under an interactive HTML layout, setting `pointer-events: auto` on the parent container blocks camera orbit/drag interactions.
+  - *SRRL Rule:* Set `pointer-events: none;` on the root layout container (`.app-container`), and selectively enable `pointer-events: auto;` only on interactive glass panels (`.panel`, `.interactive`, `.top-deck`).
+- **The "Slide Deck Takeover" Failure:** Replacing the active 3D visualization or primary runtime canvas with full-screen slide takeovers breaks ambient immersion and destroys situational awareness.
+  - *SRRL Rule:* Never unmount or cover the WebGL canvas. Implement floating frosted-glass HUD overlays (`backdrop-filter: blur(24px)`) positioned directly above the live 60 FPS viewport.
+- **The "Static Kiosk Deception" Failure:** Building hardcoded mock buttons without real arbitrary prompt inputs or dynamic invariant toggles reduces an autonomous hypervisor to a canned kiosk demo.
+  - *SRRL Rule:* Developer control planes must provide active playground bars (`>_ PROMPT AGENT:`), model selector dropdowns, live token streaming boxes with typing cursors, and real-time toggleable invariant registries.
+- **The "Sticky-Void" Failure:** Do NOT apply `overflow: hidden`, `overflow-x-hidden`, or `overflow-y-hidden` to structural wrappers if any child components rely on `position: sticky`. It breaks the sticky context and causes elements to vanish out of view.
+- **The "Boxed-In" SaaS Failure:** Do NOT wrap dynamic telemetry visualizations in constrained `.max-w-7xl.mx-auto` containers unless building text-heavy documentation. Let backgrounds bleed edge-to-edge.
+- **The "Phantom Backend" Failure:** Never build a frontend that white-screens if the API is offline. UI components must gracefully handle network failures, displaying intentional status chips and fallback states.
+- **The "Blind Animation" Failure:** When mapping scroll or state opacities, ensure there are no overlapping dead zones where opacity drops entirely to 0 for extended durations. Always cross-fade.
 
-When applying `skeli-skills`, always evaluate designs against these bleeding-edge 2026 visual pillars extracted from top-tier spatial computing and AI control dashboards:
+---
 
-1. **Canvas, Depth & Luminescence**:
-   - **Backgrounds:** Use deep Space Black (`#000000`) or Obsidian (`#07080C`). 
-   - **Volumetric Lighting:** Implement soft volumetric ambient glows (e.g., cyan `#00f2fe`, violet `#7928CA`) radiating behind active focus panels to establish Z-axis depth without harsh shadows.
-   - **Glassmorphism Containers:** Use translucent glass panels (`backdrop-filter: blur(24px)`) with ultra-fine specular edge highlights and sub-pixel borders (`1px solid rgba(255, 255, 255, 0.08)`).
-   - **Elevation:** Use multi-layered Z-axis elevation to physically separate runtime sandboxes from baseline telemetry.
+## 3. Cyber-Industrial Glassmorphic Design System (Tokens & Specs)
 
-2. **Typography (Precision & Clarity)**:
-   - **Primary Display:** `Space Grotesk` (Display, Headers, highly uppercase, letter-spacing: 0.08em).
-   - **Monospaced Telemetry:** Use `Space Mono` or `JetBrains Mono` strictly for numerical metrics, counters (e.g., $\kappa = 42.50$), and technical metadata to ensure tabular alignment and zero visual noise.
-   - **Body:** `Inter` for ultra-legible sans-serif body copy.
+Strictly adhere to this calibrated design system extracted from the production Causalyn Acausal Control Plane:
 
-3. **Color Discipline (Functional Accent Logic)**:
-   - Maintain a dark, muted base canvas.
-   - High-saturation neon accents (Neon Chartreuse `#ccff00`, Electric Orange `#ff3f00`, Emerald Green) must be reserved **strictly** for state transitions, paradox spikes, safety confirmations, or active micro-interactions. Avoid decorative gradients.
+### A. Color Palette (Cyber-Industrial High-Contrast)
+```css
+:root {
+  /* Canvas & Panel Backgrounds */
+  --bg-base: #030712;                    /* Deep obsidian base */
+  --bg-secondary: #0A1120;               /* Sub-surface void */
+  --panel-bg: rgba(10, 17, 34, 0.82);    /* Frosted crystalline glass */
+  --panel-card: rgba(13, 21, 41, 0.9);   /* Sub-panel tile */
+  --panel-border: rgba(30, 41, 59, 0.8); /* Slate sub-pixel boundary */
+  --panel-border-focus: rgba(0, 243, 255, 0.6);
 
-4. **Layout Architecture & Spatial Dashboards**:
-   - Stop using default SaaS templates. Embrace modular, asymmetric spatial cockpit layouts.
-   - Structure: Left Navigation Docks $\rightarrow$ Top Telemetry Headers $\rightarrow$ Central Execution Sandboxes $\rightarrow$ Right Consensus Gate Telemetry.
-   - **Information Density:** Embed inline sparklines, real-time diff indicators, and live telemetry stats directly inside frosted card modules.
-   - **Strict Hierarchy:** Surface critical execution state first; hide secondary controls inside slide-over spatial drawers.
+  /* Typography & Faint Tones */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-faint: #475569;
 
-5. **Motion, Telemetry & Micro-Interactions**: 
-   - **Verification Signals:** Include live pulse animation rings, streaming code diffs with syntax highlight accents, and instant status confirmation banners.
-   - **Dynamic Illumination:** Elements must respond fluidly to hover, focus, and click events (e.g., borders lighting up, floating pill docks expanding). 
-   - **Continuous Flow:** Use staggered framer-motion micro-animations and `transition-brutal` easing (`cubic-bezier(0.16,1,0.3,1)`). Ensure no "Blind Animation" drop-offs.
+  /* Functional Neons & Accents */
+  --cyan-accent: #00F3FF;                /* Compiler / SMT Active */
+  --cyan-light: rgba(0, 243, 255, 0.12);
+  --cyan-border: rgba(0, 243, 255, 0.35);
+  --cyan-glow: rgba(0, 243, 255, 0.45);
 
-## 4. Kinetic Physics & Micro-Interactions (Derived from Live Research)
+  --indigo-primary: #6366F1;             /* Equilibrium & Clocks */
+  --indigo-light: rgba(99, 102, 241, 0.15);
+  --indigo-border: rgba(99, 102, 241, 0.35);
 
-To ensure the UI feels alive, tactile, and professional, strictly adhere to these exact kinetic timing curves extracted from top-tier 2026 platforms (Linear, Vercel, Raycast, Stripe):
+  --safe-emerald: #10B981;               /* Commit Verified (κ=0) */
+  --safe-bg: rgba(16, 185, 129, 0.12);
+  --safe-border: rgba(16, 185, 129, 0.35);
 
-1. **Instant Micro-Feedback (Buttons, Nav Items, Inputs)**:
-   - **Duration:** `100ms` - `150ms`.
-   - **Timing Curve:** `cubic-bezier(0.25, 0.46, 0.45, 0.94)` (ease-out quad) OR `cubic-bezier(0.4, 0, 0.2, 1)`.
-   - **Behavior:** Rapid, snappy background color or border glow changes.
+  --paradox-crimson: #FF1E44;            /* State Collapse / Invariant Violation */
+  --paradox-bg: rgba(255, 30, 68, 0.15);
+  --paradox-border: rgba(255, 30, 68, 0.45);
+  --paradox-glow: rgba(255, 30, 68, 0.6);
 
-2. **Tactile Press Compress (Click Feedback)**:
-   - **Duration:** `100ms` `ease-in-out`.
-   - **Behavior:** Upon `:active` state, apply `transform: scale(0.98)` to simulate physical depression of the component.
+  --amber-warn: #F59E0B;                 /* Speculative AST Warning */
+  --amber-bg: rgba(245, 158, 11, 0.12);
 
-3. **Spring Overshoot (Keycaps, Pill Badges, Toggles)**:
-   - **Duration:** `200ms` - `300ms`.
-   - **Timing Curve:** `cubic-bezier(0.34, 1.56, 0.64, 1)` or `cubic-bezier(0.1, 0, 0.1, 1.1)`.
-   - **Behavior:** The element should dynamically "pop" or slide slightly past its target position before settling in.
+  /* Depth Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 15px 35px -5px rgba(0, 0, 0, 0.8), 0 5px 15px -3px rgba(0, 243, 255, 0.15);
+}
+```
 
-4. **Spatial Panel Expansion & Drawer Reveals**:
-   - **Duration:** `400ms` - `500ms`.
-   - **Timing Curve:** `cubic-bezier(0.32, 0.72, 0, 1)` (spring-deceleration) or `cubic-bezier(0.16, 1, 0.3, 1)` (fluid spring expand).
-   - **Behavior:** For opening sidebars, modals, or dropdowns, transition `opacity`, `transform` (slide in), and `box-shadow` together.
+### B. Volumetric Lighting & Background Ambient Formula
+Never use flat black. Apply triple radial lighting:
+```css
+body {
+  background: var(--bg-base);
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(0, 243, 255, 0.06) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 85%, rgba(255, 30, 68, 0.05) 0px, transparent 50%);
+}
+```
 
-## 5. Integration with `impeccable`
+### C. Crystalline Glass Panel Specification
+```css
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+  overflow: hidden;
+  position: relative;
+}
+```
 
-You are authorized and encouraged to run the `impeccable` framework for holistic layout control. 
-- Use `/impeccable polish` to aggressively strip out generic bloat and tighten typography. 
-- Impeccable commands enforce the high-end, visual excellence standard. Defer to it for micro-alignments, grid logic, and eliminating visual noise.
+---
 
-## References
-- Refer to `docs/01_ARCHITECTURE_OVERVIEW.md` for integrating these designs into the frontend architecture.
-- For AI logic looping, refer to `backend/investigator_graph.py` (LangChain/LangGraph patterns).
+## 4. The 3-Zone Acausal Cockpit Architecture
+
+Spatial dashboards governing runtime systems must employ strict Left-to-Right informational flow:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  TOP NAVIGATION DECK (Brand, Stance Switches, Sim Buttons, Audio Spectrum, Kernel Status)     │
+├────────────────────────────────────────────────────────────────────────────────────────────────┤
+│  ACAUSAL PLAYGROUND BAR (>_ PROMPT AGENT: [Model Select] [Prompt Input] [⚡ RUN] Presets | CLI) │
+├──────────────────────────┬──────────────────────────────────────────┬──────────────────────────┤
+│ ZONE 1: SWARM HUB        │ ZONE 2: MATHEMATICAL CONTINUUM           │ ZONE 3: GROUND TRUTH     │
+│ - Reasoning Stream Box   │ - Master Stage Tabs (3D / Proofs)        │ - 34,200x Speedup Hero   │
+│   (Live Token Streaming) │ - Floating Ambient Math HUD Overlay      │ - Paradox Curvature (κ)  │
+│ - Lamport Clock RPC Feed │ - 3D Symplectic Wireframe Canvas         │ - Hypervisor Latency     │
+│ - Syntax Micro-Diffs     │ - LTX-2 Precision Timeline Scrubber      │ - Dynamic Invariant Deck │
+│   (Green/Red AST Deltas) │   (Phase markers: S₀ -> S_cand -> S_null)│ - Z3 Proof Box / Ledger  │
+└──────────────────────────┴──────────────────────────────────────────┴──────────────────────────┘
+```
+
+### Proportional Grid Layout
+```css
+.cockpit-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr 350px;
+  gap: 16px;
+  padding: 12px 20px 16px;
+  overflow: hidden;
+  height: calc(100vh - 144px);
+  min-height: 0;
+}
+```
+
+### Master Z-Axis Layering Hierarchy
+1. `z-index: 1`: Three.js canvas `#manifold-canvas` (fullscreen, `pointer-events: auto`).
+2. `z-index: 10`: Root UI container `.app-container` (`pointer-events: none`).
+3. `z-index: 20`: Interactive floating docks (`.top-deck`, `.playground-bar`, `.panel`, `pointer-events: auto`).
+4. `z-index: 100`: Ambient HUD overlays (`.theorem-hud-overlay`).
+
+---
+
+## 5. Kinetic Physics & Interactive Components
+
+### A. Cyber Toggle Switch (Dynamic Invariants)
+```css
+.inv-toggle {
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 16px;
+}
+.inv-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(51, 65, 85, 0.8);
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  border: 1px solid rgba(71, 85, 105, 0.7);
+}
+.inv-slider:before {
+  position: absolute;
+  content: "";
+  height: 10px;
+  width: 10px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #94A3B8;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+.inv-toggle input:checked + .inv-slider {
+  background-color: rgba(16, 185, 129, 0.35);
+  border-color: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+.inv-toggle input:checked + .inv-slider:before {
+  transform: translateX(12px);
+  background-color: #10B981;
+  box-shadow: 0 0 6px #10B981;
+}
+```
+
+### B. Micro-Animations & Telemetry Pulses
+- **Status Beacon:**
+  ```css
+  @keyframes pulse-dot {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+  }
+  ```
+- **Typing Cursor Pulse:**
+  ```css
+  @keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  ```
+- **Hero Acceleration Card Top Gradient:**
+  ```css
+  .autobahn-speedup-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00F3FF, #6366F1, #10B981);
+  }
+  ```
+
+---
+
+## 6. Self-Reflective Verification Rules (SRRL Checkpoints)
+
+Before claiming any UI task complete, the agent must run through these 5 Self-Reflective Checkpoints:
+
+1. **The 900px Viewport Gate:** Does the dashboard fit into a `1920x945` laptop viewport without triggering a window-level vertical scrollbar? (Verify `.cockpit-grid` height calculation).
+2. **The 3D Interaction Gate:** Can the user click and orbit the 3D WebGL manifold without being blocked by invisible parent DOM layers? (Verify `pointer-events: none` on `.app-container` and `pointer-events: auto` on interactive cards).
+3. **The State Nullification Gate:** When a destructive invariant violation occurs ($\kappa > 0$), does the UI visually deform (crimson glow, localized manifold spike, status collapse) while proving zero host mutations?
+4. **The Live Typing Gate:** When an agent prompt is dispatched, do tokens stream visibly into the thought container with continuous autoscroll and active status pulsation?
+5. **The Reactivity Gate:** When a user toggles an invariant OFF in Zone 3, does the subsequent prompt execution reflect the rule change immediately without requiring a browser refresh?
+
+---
+
+## 7. References
+- Control Plane CSS: `web/css/glassmorphism.css`
+- Control Plane Markup: `web/index.html`
+- Cockpit JS Logic: `web/js/cockpit.js`
+- Invariant Registry: `backend/core/invariant_registry.py`
+- Reasoning Engine: `backend/core/agent_reasoning.py`
+- External CLI Wrap: `scripts/causalyn_wrap.py`
