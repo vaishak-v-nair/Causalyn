@@ -56,7 +56,8 @@ class TelemetryBroadcaster:
 telemetry = TelemetryBroadcaster()
 synthesizer = AcausalSynthesizer()
 manim = ManimEngine()
-fabric = AmbientFabric(workspace_root="../")
+demo_root = Path(__file__).resolve().parent.parent / "runtime" / "demo_workspace"
+fabric = AmbientFabric(workspace_root=str(demo_root) if demo_root.exists() else "../")
 state_bus = HyperDimensionalStateBus()
 
 web_dir = Path(__file__).resolve().parent.parent / "web"
@@ -107,7 +108,7 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
         lambda v: v.get('sockets', Int('sockets')) <= 100
     ]
     
-    with fabric.spawn_shadow_continuum(call.target_file) as shadow_path:
+    with fabric.spawn_shadow_continuum(call.target_file, initial_content=call.proposed_content) as shadow_path:
         kappa, code, patch = await asyncio.to_thread(
             synthesizer.synthesize_valid_state,
             call.proposed_content,
@@ -117,11 +118,14 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
         
         duration_us = (time.perf_counter_ns() - t_start) / 1000.0
 
+        shadow_file = shadow_path / Path(call.target_file).name
         if kappa == 0.0:
             status = "COMMITTED"
+            shadow_file.write_text(call.proposed_content, encoding="utf-8")
             fabric.atomic_commit(shadow_path, call.target_file)
         elif patch and patch.get("corrected"):
             status = "SYNTHESIZED"
+            shadow_file.write_text(code, encoding="utf-8")
         else:
             status = "ANNIHILATED"
             

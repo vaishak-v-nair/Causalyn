@@ -16,7 +16,7 @@ class AmbientFabric:
             raise FileNotFoundError(f"Root path {workspace_root} does not exist.")
 
     @contextmanager
-    def spawn_shadow_continuum(self, target_file: str) -> Generator[Path, None, None]:
+    def spawn_shadow_continuum(self, target_file: str, initial_content: str = None) -> Generator[Path, None, None]:
         """
         Provisions an isolated, ephemeral CoW sandbox for a SPECIFIC file.
         This avoids the O(N) I/O bottleneck of copying the entire workspace.
@@ -26,8 +26,13 @@ class AmbientFabric:
         shadow_file = shadow_dir / Path(target_file).name
 
         try:
-            if source_file.exists():
+            shadow_file.parent.mkdir(parents=True, exist_ok=True)
+            if initial_content is not None:
+                shadow_file.write_text(initial_content, encoding="utf-8")
+            elif source_file.exists():
                 shutil.copy2(source_file, shadow_file)
+            else:
+                shadow_file.write_text("", encoding="utf-8")
             
             yield shadow_dir
         finally:
@@ -48,6 +53,7 @@ class AmbientFabric:
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Atomic replacement via rename over same filesystem partition
-        temp_dest = target_path.with_suffix(".tmp_causalyn")
+        temp_dest = target_path.with_name(f"{target_path.name}.tmp_causalyn")
         shutil.copy2(source_path, temp_dest)
         os.replace(temp_dest, target_path)
+
