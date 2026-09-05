@@ -81,3 +81,11 @@ class AuthorizeMissionRequest(BaseModel):
     approved: bool = Field(..., description="True to authorize, False to reject")
     user: str = Field("security_officer", description="Identity of authorizer")
     comment: Optional[str] = Field(None, description="Audit rationale or commentary")
+
+
+class EvaluateVPSNRequest(BaseModel):
+    """Payload for direct VPSN engine evaluation."""
+    candidate_code: str = Field(default="", max_length=50000)
+    file_name: str = Field(default="candidate_action.py", max_length=256)
+    intent_vector: Dict[str, Any] = Field(default_factory=dict)
+    proposed_vars: Dict[str, Any] = Field(default_factory=dict)

@@ -2,3 +2,9 @@ fastapi>=0.110,<1
 pydantic>=2,<3
 uvicorn>=0.27,<1
 PyYAML>=6,<7
+z3-solver-5.1.0.0
+langgraph
+langchain-core
+anthropic
+python-dotenv
+pycrdt>=0.14.0

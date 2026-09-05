@@ -4,17 +4,26 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from .contracts import (
     AuthorizeMissionRequest,
     CreateMissionRequest,
+    EvaluateVPSNRequest,
     IntentRequest,
     InterceptActionRequest,
     InterceptActionResponse,
 )
 from .responses import HealthResponse, IntentResponse, PipelinesResponse, StateResponse
 from .services import BackendService
+
+
+_MANIFOLD_TELEMETRY: dict[str, Any] = {
+    "annihilation_count": 0,
+    "last_kappa": 0.0,
+    "last_status": "EQUILIBRIUM",
+    "last_violations": [],
+}
 
 
 def create_router(
@@ -360,6 +369,163 @@ def create_router(
             "audit_hash": audit_hash,
             "article_10_audit_id": f"art10-{audit_hash[:16]}",
             "unified_diffs": diffs,
+        }
+
+    @router.post("/vpsn/evaluate")
+    def evaluate_vpsn(request: EvaluateVPSNRequest) -> dict[str, Any]:
+        """
+        Execute candidate code through the Mathematical Kernel (kappa Engine),
+        Z3 SMT Solver, and Ambient Fabric with the Vaishak Operator.
+        """
+        import time
+        from ..verification.kappa_engine import compute_paradox_index
+        from ..verification.cegar_loop import evaluate_invariant_nullspace
+        from ..shadow.ambient_fabric import AmbientFabric
+
+        t0 = time.perf_counter()
+
+        # 1. AST & Invariant evaluation
+        ast_kappa, ast_violations = compute_paradox_index(
+            request.candidate_code, request.intent_vector
+        )
+
+        # 2. SMT Null-Space constraint evaluation
+        smt_kappa, smt_msg = evaluate_invariant_nullspace(
+            request.proposed_vars, request.intent_vector
+        )
+        smt_counterexample = (
+            {"smt_status": "UNSAT", "proof": smt_msg} if smt_kappa > 0 else None
+        )
+
+        # 3. Aggregate Paradox Index
+        total_kappa = (ast_kappa if ast_kappa != float("inf") else 1000.0) + smt_kappa
+        all_violations = list(ast_violations)
+        if smt_kappa > 0:
+            all_violations.append(smt_msg)
+
+        # 4. Ambient Fabric Simulation
+        fabric = AmbientFabric(source_dir=str(service.world_state.root_path))
+        fabric.snapshot()
+        fabric.write_shadow_file(request.file_name, request.candidate_code)
+        diff = fabric.extract_candidate_diff(request.file_name)
+
+        # 5. Apply the Vaishak Operator (Upsilon)
+        operator_status = fabric.apply_vaishak_operator(total_kappa, request.file_name)
+
+        duration_ms = (time.perf_counter() - t0) * 1000
+
+        # Update global manifold state for WebGL canvas
+        global _MANIFOLD_TELEMETRY
+        _MANIFOLD_TELEMETRY["annihilation_count"] += 1 if operator_status == "ANNIHILATED" else 0
+        _MANIFOLD_TELEMETRY["last_kappa"] = total_kappa
+        _MANIFOLD_TELEMETRY["last_status"] = operator_status
+        _MANIFOLD_TELEMETRY["last_violations"] = all_violations
+        _MANIFOLD_TELEMETRY["last_timestamp"] = time.time()
+
+        # Broadcast real-time execution state directly to GPU over WebSocket
+        try:
+            import app as main_app
+            main_app.trigger_semantic_interference_sync(
+                kappa_val=total_kappa,
+                violation=all_violations[0] if all_violations else "Semantic Null-Space Admitted",
+            )
+        except Exception:
+            pass
+
+        return {
+            "paradox_index": total_kappa,
+            "kappa": total_kappa,
+            "vaishak_operator": operator_status,
+            "operator_status": operator_status,
+            "admissible": (total_kappa == 0.0),
+            "ast_violations": ast_violations,
+            "structural_violations": all_violations,
+            "smt_message": smt_msg,
+            "smt_counterexample": smt_counterexample,
+            "unified_diff": diff,
+            "diff": diff,
+            "live_bytes_mutated": len(request.candidate_code) if operator_status == "COMMITTED" else 0,
+            "duration_ms": round(duration_ms, 2),
+            "state_annihilated": (operator_status == "ANNIHILATED"),
+        }
+
+    @router.get("/vpsn/manifold")
+    def get_manifold_telemetry() -> dict[str, Any]:
+        """Telemetry endpoint providing real-time 3D Symplectic Manifold data for WebGL."""
+        kappa = _MANIFOLD_TELEMETRY.get("last_kappa", 0.0)
+        annihilations = _MANIFOLD_TELEMETRY.get("annihilation_count", 0)
+        return {
+            "manifold": "Vaishak Continuum",
+            "curvature": round(kappa * 0.15, 4),
+            "active_kappa": kappa,
+            "paradox_index": kappa,
+            "topology_status": (
+                "PARADOX_SPIKE" if kappa > 0.0 else "EQUILIBRIUM"
+            ),
+            "annihilations_total": annihilations,
+            "annihilations_count": annihilations,
+            "paradox_eruptions_count": annihilations,
+            "last_operator_event": _MANIFOLD_TELEMETRY.get("last_status", "EQUILIBRIUM"),
+            "active_violations": _MANIFOLD_TELEMETRY.get("last_violations", []),
+            "telemetry_history": [
+                {
+                    "timestamp": _MANIFOLD_TELEMETRY.get("last_timestamp", 0),
+                    "kappa": kappa,
+                    "status": _MANIFOLD_TELEMETRY.get("last_status", "EQUILIBRIUM"),
+                }
+            ],
+        }
+
+    @router.post("/vpsn/synthesize")
+    def synthesize_dependencies(request: Request, payload: dict[str, Any]) -> dict[str, Any]:
+        """Real-time integration with the Z3 Acausal Synthesizer, State Bus, and Ricci Flow."""
+        import time
+        from ..orchestrator.state_bus import HyperDimensionalStateBus
+        from ..verification.cegar_loop import AcausalSynthesizer
+
+        start_time = time.perf_counter()
+        
+        # 1. State Bus Integration (GAP 2)
+        agent_id = "ui-agent-1"
+        bus = HyperDimensionalStateBus()
+        
+        # Register intent with the bus to check global geometric collisions
+        allowed, bus_kappa, bus_msg = bus.register_intent(agent_id, payload)
+        
+        # 2. Acausal Compiler & Ricci Flow (GAP 1)
+        # Even if the bus allows it locally, we run Ricci flow to auto-correct any internal violations
+        synthesizer = AcausalSynthesizer()
+        synthesizer.apply_intent_vector()
+        
+        kappa, feedback, corrected_state = synthesizer.apply_ricci_flow(payload)
+        
+        duration_ms = (time.perf_counter() - start_time) * 1000
+        
+        # Clean up the intent from the bus after transaction
+        bus.release_intent(agent_id)
+        
+        decision_str = "allow" if kappa == 0 else "deny"
+        
+        # Broadcast real-time execution state directly to GPU over WebSocket
+        try:
+            import app as main_app
+            main_app.trigger_semantic_interference_sync(
+                kappa_val=kappa,
+                violation=feedback[0] if feedback else "Semantic Null-Space Admitted",
+            )
+        except Exception:
+            pass
+
+        return {
+            "decision": decision_str,
+            "paradox_index": kappa,
+            "reason": feedback[0] if feedback else "State is mathematically flawless. Merging.",
+            "violations": feedback,
+            "corrected_state": corrected_state, # Ricci Flow smoothed state (GAP 1)
+            "bus_collision": not allowed,       # Multi-agent collision detection (GAP 2)
+            "bus_message": bus_msg,
+            "execution_time_ms": duration_ms,
+            "unified_diffs": {},
         }
 
     return router

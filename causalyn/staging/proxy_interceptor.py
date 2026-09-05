@@ -16,6 +16,34 @@ from pydantic import BaseModel, Field
 from ..api.contracts import GateDecision
 
 
+class ProxyPromptInterceptor:
+    """
+    Self-Reflective Invariant Injection.
+    Flips RAG on its head: Injects absolute mathematical boundaries (Intent Vector I)
+    directly into the agent's prompt to guide generation along valid semantic manifolds.
+    """
+    
+    def __init__(self, intent_vector: Optional[Dict[str, Any]] = None):
+        self.intent_vector = intent_vector or {}
+
+    def inject_invariants(self, original_prompt: str) -> str:
+        """Injects system boundaries into the prompt."""
+        if not self.intent_vector:
+            return original_prompt
+            
+        invariants_text = "\n".join([f"- {k}: {v}" for k, v in self.intent_vector.items()])
+        
+        system_block = (
+            "\n\n[CAUSALYN SYSTEM OVERRIDE]\n"
+            "The following invariants define the absolute geometric boundaries of the system.\n"
+            "You MUST conform to these constraints, or your state will be annihilated:\n"
+            f"{invariants_text}\n"
+            "[/CAUSALYN SYSTEM OVERRIDE]\n\n"
+        )
+        
+        return system_block + original_prompt
+
+
 class StagingViolation(BaseModel):
     code: str
     message: str

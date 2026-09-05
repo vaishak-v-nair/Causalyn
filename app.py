@@ -190,7 +190,19 @@ def index() -> FileResponse:
 
 @api.get("/{asset:path}")
 def asset(asset: str) -> FileResponse:
-        allowed = {"app.js": "text/javascript", "styles.css": "text/css"}
+        # Allow serving videos from the assets folder
+        if asset.startswith("assets/"):
+            asset_path = WEB_ROOT / asset
+            if not asset_path.exists() or not asset.endswith(".mp4"):
+                raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
+            return FileResponse(asset_path, media_type="video/mp4")
+            
+        allowed = {
+            "app.js": "text/javascript",
+            "styles.css": "text/css",
+            "three.min.js": "text/javascript",
+            "vaishak_canvas.js": "text/javascript",
+        }
         if asset not in allowed:
             raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
         return FileResponse(WEB_ROOT / asset, media_type=allowed[asset])
