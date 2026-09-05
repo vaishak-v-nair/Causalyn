@@ -34,3 +34,7 @@ runtime/demo_workspace/
 # OS
 Thumbs.db
 .DS_Store
+
+# Manim intermediate files
+**/partial_movie_files/
+backend/media/

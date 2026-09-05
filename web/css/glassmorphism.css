@@ -1,0 +1,754 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Luminous Formal Palette (Bright, Pristine, Zero AI Slop) */
+  --bg-base: #F8FAFD;
+  --bg-secondary: #F1F5F9;
+  --panel-bg: rgba(255, 255, 255, 0.88);
+  --panel-card: rgba(255, 255, 255, 0.95);
+  --panel-border: rgba(226, 232, 240, 0.85);
+  --panel-border-focus: rgba(79, 70, 229, 0.5);
+  
+  /* Text colors */
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #64748B;
+  --text-faint: #94A3B8;
+
+  /* Formal Accents */
+  --indigo-primary: #4F46E5;
+  --indigo-light: #EEF2FF;
+  --indigo-border: #C7D2FE;
+  
+  --cyan-accent: #0284C7;
+  --cyan-light: #F0F9FF;
+  
+  /* Semantic Status */
+  --safe-emerald: #059669;
+  --safe-bg: #ECFDF5;
+  --safe-border: #A7F3D0;
+  
+  --paradox-crimson: #E11D48;
+  --paradox-bg: #FFF1F2;
+  --paradox-border: #FECDD3;
+
+  --amber-warn: #D97706;
+  --amber-bg: #FFFBEB;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 15px 35px -5px rgba(15, 23, 42, 0.08), 0 5px 15px -3px rgba(15, 23, 42, 0.04);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  background-image: 
+    radial-gradient(at 15% 15%, rgba(79, 70, 229, 0.07) 0px, transparent 50%),
+    radial-gradient(at 85% 20%, rgba(2, 132, 199, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 85%, rgba(245, 158, 11, 0.04) 0px, transparent 50%);
+  color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Three.js Background Canvas */
+#manifold-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* Master Layout */
+.app-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* Interactive elements */
+.interactive {
+  pointer-events: auto;
+}
+
+/* Top Navigation & Status Deck */
+.top-deck {
+  height: 64px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #4F46E5, #0284C7);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.brand-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.4px;
+  background: linear-gradient(135deg, #0F172A 40%, #4F46E5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  background: var(--indigo-light);
+  color: var(--indigo-primary);
+  border: 1px solid var(--indigo-border);
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Simulation Controls */
+.center-deck-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sim-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-sim {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-sim:hover {
+  border-color: var(--indigo-primary);
+  color: var(--indigo-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-sim.danger-btn:hover {
+  border-color: var(--paradox-crimson);
+  color: var(--paradox-crimson);
+}
+
+/* Audio Synthesizer Widget */
+.audio-controller {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  padding: 4px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+}
+
+#audio-spectrum-canvas {
+  width: 50px;
+  height: 22px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid var(--panel-border);
+}
+
+.audio-btn {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: transform 0.1s;
+}
+
+.audio-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Status Indicators */
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: var(--safe-bg);
+  color: var(--safe-emerald);
+  border: 1px solid var(--safe-border);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--safe-emerald);
+  box-shadow: 0 0 8px var(--safe-emerald);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+/* Cockpit 3-Zone Workspace */
+.cockpit-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 330px 1fr 340px;
+  gap: 18px;
+  padding: 18px;
+  overflow: hidden;
+  height: calc(100vh - 64px);
+}
+
+/* Crystalline Glass Panels */
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.panel-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title-icon {
+  color: var(--indigo-primary);
+}
+
+.panel-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+/* Zone 1: Multi-Agent Swarm Hub */
+.terminal-feed {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border) transparent;
+}
+
+.log-entry {
+  background: var(--panel-card);
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--indigo-primary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.log-entry:hover {
+  border-color: var(--indigo-border);
+  background: #fff;
+}
+
+.log-entry.danger {
+  border-left-color: var(--paradox-crimson);
+  background: var(--paradox-bg);
+  border-color: var(--paradox-border);
+}
+
+.log-entry.safe {
+  border-left-color: var(--safe-emerald);
+  background: var(--safe-bg);
+  border-color: var(--safe-border);
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.log-agent {
+  font-weight: 700;
+  color: var(--indigo-primary);
+}
+
+.log-clock {
+  background: var(--bg-secondary);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.log-body {
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+/* Zone 2: Symplectic Continuum & Mathematical Proof Theatre */
+.center-viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+/* Master Stage Tabs: 3D Continuum vs Manim Proofs */
+.stage-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+
+.theorem-tab-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-theorem {
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.btn-theorem:hover {
+  background: var(--bg-secondary);
+  color: var(--indigo-primary);
+}
+
+.btn-theorem.active {
+  background: var(--indigo-primary);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+/* 3D & Manim Stage Container */
+.stage-main-canvas {
+  flex: 1;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Manim Mathematical Video Showcase */
+#manim-theatre-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #F8FAFD;
+  display: none;
+  z-index: 5;
+}
+
+/* HUD Overlay on 3D Stage */
+.stage-hud-overlay {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 6;
+  pointer-events: auto;
+}
+
+.formula-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+}
+
+.camera-preset-group {
+  display: flex;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-cam {
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.btn-cam.active, .btn-cam:hover {
+  background: var(--indigo-primary);
+  color: #fff;
+}
+
+/* LTX-2 Precision Timeline Scrubber */
+.ltx-timeline-deck {
+  height: 86px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px);
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  padding: 10px 18px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: auto;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.timeline-playback-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timeline-btn {
+  background: #fff;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: all 0.15s;
+}
+
+.timeline-btn:hover {
+  border-color: var(--indigo-primary);
+  color: var(--indigo-primary);
+}
+
+.timeline-scrubber-track {
+  flex: 1;
+  position: relative;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.timeline-range {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #E2E8F0;
+  outline: none;
+  cursor: pointer;
+}
+
+.timeline-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--indigo-primary);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.timeline-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.timeline-markers {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.timeline-badge-active {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--indigo-primary);
+  background: var(--indigo-light);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* Zone 3: Ground Truth Ledger & Prover */
+.truth-vault {
+  gap: 14px;
+}
+
+.metric-card {
+  background: #fff;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s;
+}
+
+.metric-card:hover {
+  border-color: var(--indigo-border);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.metric-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.metric-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--safe-emerald);
+  transition: color 0.3s;
+}
+
+.metric-value.paradox {
+  color: var(--paradox-crimson);
+  animation: pulse-shake 0.3s ease-in-out;
+}
+
+@keyframes pulse-shake {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.metric-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Invariant Logic Cards */
+.invariant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.invariant-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.invariant-status {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--safe-emerald);
+}
+
+/* Z3 Formal Proof Output Box */
+.proof-box {
+  flex: 1;
+  background: #fff;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow-y: auto;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.proof-tag {
+  color: var(--indigo-primary);
+  font-weight: 700;
+}
+
+.proof-line {
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.proof-line.verified {
+  color: var(--safe-emerald);
+  font-weight: 600;
+}

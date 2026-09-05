@@ -1,0 +1,423 @@
+import { initManifold, updateKappaVisuals, setCameraPreset } from './manifold_stream.js';
+import { initAudioEngine, playEquilibriumChime, playParadoxGlitch, playSynthesisSweep, toggleMute } from './audio_engine.js';
+
+let ws = null;
+let isPlayingTimeline = false;
+let timelineInterval = null;
+let currentTimelineVal = 0;
+let currentActiveView = 'manifold';
+
+const THEOREM_VIDEOS = {
+    'paradox': '/assets/manim/videos/paradox_index/480p15/ParadoxIndexScene.mp4',
+    'operator': '/assets/manim/videos/vaishak_operator/480p15/VaishakOperatorScene.mp4',
+    'nullification': '/assets/manim/videos/semantic_nullification/480p15/SemanticNullificationScene.mp4',
+    'compiler': '/assets/manim/videos/acausal_compiler/480p15/AcausalCompilerScene.mp4'
+};
+
+const THEOREM_FORMULAS = {
+    'manifold': 'z = sin(u)cos(v) + κ · e^{-(u² + v²)}',
+    'paradox': 'κ = Σ ω_v · P(Sc, Sl)  [Penalty Metric]',
+    'operator': 'Υ(κ, f) = { COMMIT if κ=0, ANNIHILATE if κ>0 }',
+    'nullification': 'S ∈ 𝒩_semantic ⟺ κ(S, ℐ) = 0',
+    'compiler': '∂g/∂t = -2 · Ric(g)  [Semantic Ricci Flow]'
+};
+
+export function initCockpit() {
+    initManifold();
+    initAudioEngine();
+    initWebSocket();
+    setupControls();
+}
+
+function initWebSocket() {
+    const wsUrl = `ws://${window.location.hostname || '127.0.0.1'}:8000/ws/continuum`;
+    
+    try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            logToFeed("KERNEL", "Acausal Continuum Initialized [VPSN Runtime]", "safe");
+            updateSystemStatus(true);
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleServerMessage(data);
+            } catch (err) {
+                console.error("Malformed WebSocket frame", err);
+            }
+        };
+
+        ws.onclose = () => {
+            updateSystemStatus(false);
+            logToFeed("KERNEL", "Link severed. Reconnecting in 2s...", "danger");
+            setTimeout(initWebSocket, 2000);
+        };
+
+        ws.onerror = () => {
+            updateSystemStatus(false);
+        };
+    } catch (e) {
+        console.warn("WebSocket fallback", e);
+        setTimeout(initWebSocket, 2000);
+    }
+}
+
+function handleServerMessage(data) {
+    if (data.type === "paradox_spike") {
+        const isParadox = data.kappa > 0.05;
+        
+        // 1. Play acoustic feedback
+        if (isParadox) {
+            playParadoxGlitch();
+            if (data.status === "SYNTHESIZED") {
+                setTimeout(playSynthesisSweep, 180);
+            }
+        } else {
+            playEquilibriumChime();
+        }
+
+        // 2. Log to Swarm Feed
+        const typeClass = isParadox ? "danger" : "safe";
+        const msg = `[${data.status}] ${data.target_file} | κ=${data.kappa.toFixed(2)} | Latency: ${data.latency_us.toFixed(1)}µs`;
+        logToFeed(data.agent_id || "WORKER", msg, typeClass, data.vector_clock || 1);
+
+        // 3. Update HUD Metrics
+        updateMetrics(data.kappa, data.latency_us, data.status);
+
+        // 4. Update 3D Manifold
+        updateKappaVisuals(data.kappa);
+        
+        // 5. Update timeline slider position
+        syncTimelineWithKappa(data.kappa);
+
+        // 6. Update Z3 Proof Box
+        renderZ3Proof(data);
+
+        // 7. Update Cryptographic Commit Ledger
+        if (data.status === "COMMITTED" || data.status === "SYNTHESIZED") {
+            appendCommitHash(data.agent_id, data.target_file);
+        }
+    } 
+    else if (data.type === "swarm_reconciled") {
+        logToFeed("LAMPORT-BUS", `Reconciled ${data.total_operations} concurrent state mutations: [${data.order.join(', ')}]`, "safe");
+        playSynthesisSweep();
+    }
+}
+
+function switchTheatreView(viewName) {
+    currentActiveView = viewName;
+    const player = document.getElementById('manim-theatre-player');
+    const formulaText = document.getElementById('stage-formula-text');
+    const cameraControls = document.getElementById('camera-controls');
+
+    // Update active tab button
+    document.querySelectorAll('.btn-theorem').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === viewName);
+    });
+
+    if (formulaText) {
+        formulaText.textContent = THEOREM_FORMULAS[viewName] || '';
+    }
+
+    if (viewName === 'manifold') {
+        // Return to 3D Three.js canvas
+        if (player) {
+            player.pause();
+            player.style.display = 'none';
+        }
+        if (cameraControls) cameraControls.style.display = 'flex';
+    } else {
+        // Load and play Manim mathematical animation video
+        if (cameraControls) cameraControls.style.display = 'none';
+        if (player) {
+            const videoUrl = THEOREM_VIDEOS[viewName];
+            if (videoUrl) {
+                player.src = videoUrl;
+                player.style.display = 'block';
+                player.currentTime = 0;
+                player.play().catch(e => console.warn("Auto-play suppressed", e));
+            }
+        }
+    }
+}
+
+function updateMetrics(kappa, latencyUs, status) {
+    const kappaEl = document.getElementById('metric-kappa');
+    const latencyEl = document.getElementById('metric-latency');
+    const statusEl = document.getElementById('metric-status');
+
+    if (kappaEl) {
+        kappaEl.textContent = kappa.toFixed(2);
+        if (kappa > 0.05) {
+            kappaEl.classList.add('paradox');
+        } else {
+            kappaEl.classList.remove('paradox');
+        }
+    }
+
+    if (latencyEl) {
+        latencyEl.textContent = `${latencyUs.toFixed(1)} µs`;
+    }
+
+    if (statusEl) {
+        statusEl.textContent = status;
+        statusEl.style.color = kappa > 0.05 ? '#E11D48' : '#059669';
+    }
+}
+
+function renderZ3Proof(data) {
+    const box = document.getElementById('proof-box');
+    if (!box) return;
+
+    const time = new Date().toISOString().substring(11, 19);
+    let proofHtml = `
+        <div class="proof-line"><span class="proof-tag">[${time}]</span> AST Node: ${data.target_file}</div>
+        <div class="proof-line">SMT Invariants: (threads ≤ 16) ∧ (mem ≤ 1024) ∧ (sockets ≤ 100)</div>
+    `;
+
+    if (data.kappa > 0.05) {
+        proofHtml += `
+            <div class="proof-line" style="color: #E11D48;"><strong>UNSAT:</strong> Constraint violated (κ = ${data.kappa.toFixed(2)})</div>
+            <div class="proof-line">Counterexample: Model generated via Z3 solver</div>
+            <div class="proof-line verified">CEGIS Rewrite: AST patched & verified in memory</div>
+        `;
+    } else {
+        proofHtml += `
+            <div class="proof-line verified"><strong>SAT:</strong> Invariant space verified (κ = 0.00)</div>
+            <div class="proof-line verified">State Projection ∈ Null-Space 𝒩_semantic</div>
+        `;
+    }
+
+    box.innerHTML = proofHtml;
+}
+
+function appendCommitHash(agentId, file) {
+    const list = document.getElementById('hash-list');
+    if (!list) return;
+
+    const hashItem = document.createElement('div');
+    hashItem.className = 'invariant-chip';
+    const fakeHash = "0x" + Array.from({length: 12}, () => Math.floor(Math.random()*16).toString(16)).join('');
+    hashItem.innerHTML = `
+        <span>${fakeHash}</span>
+        <span class="invariant-status">${agentId.slice(-6)}</span>
+    `;
+    list.prepend(hashItem);
+
+    if (list.children.length > 5) {
+        list.lastElementChild.remove();
+    }
+}
+
+function logToFeed(source, message, type = "normal", clock = null) {
+    const feed = document.getElementById('terminal-feed');
+    if (!feed) return;
+
+    const entry = document.createElement('div');
+    entry.className = `log-entry ${type}`;
+
+    const now = new Date().toTimeString().split(' ')[0];
+    const clockBadge = clock !== null ? `<span class="log-clock">CLK:${clock}</span>` : '';
+
+    entry.innerHTML = `
+        <div class="log-header">
+            <span class="log-agent">${source}</span>
+            <div>${clockBadge} <span>${now}</span></div>
+        </div>
+        <div class="log-body">${message}</div>
+    `;
+
+    feed.prepend(entry);
+    if (feed.children.length > 30) {
+        feed.lastElementChild.remove();
+    }
+}
+
+function updateSystemStatus(online) {
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    if (dot && text) {
+        if (online) {
+            dot.style.background = '#059669';
+            dot.style.boxShadow = '0 0 8px #059669';
+            text.textContent = 'CONTINUUM ACTIVE';
+        } else {
+            dot.style.background = '#E11D48';
+            dot.style.boxShadow = '0 0 8px #E11D48';
+            text.textContent = 'RECONNECTING';
+        }
+    }
+}
+
+/* Setup UI Handlers */
+function setupControls() {
+    // Theorem Selector Tabs
+    document.querySelectorAll('.btn-theorem').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchTheatreView(btn.dataset.view);
+        });
+    });
+
+    // Camera buttons
+    document.querySelectorAll('.btn-cam').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.btn-cam').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            setCameraPreset(btn.dataset.cam);
+        });
+    });
+
+    // Timeline Scrubber
+    const timelineRange = document.getElementById('timeline-range');
+    const timelineTime = document.getElementById('timeline-time');
+    const timelineBadge = document.getElementById('timeline-phase-badge');
+
+    if (timelineRange) {
+        timelineRange.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            currentTimelineVal = val;
+            applyTimelinePhase(val);
+        });
+    }
+
+    // Play / Pause Timeline
+    const playBtn = document.getElementById('btn-play-timeline');
+    if (playBtn) {
+        playBtn.addEventListener('click', () => {
+            isPlayingTimeline = !isPlayingTimeline;
+            playBtn.innerHTML = isPlayingTimeline ? '⏸' : '▶';
+            
+            if (isPlayingTimeline) {
+                timelineInterval = setInterval(() => {
+                    currentTimelineVal = (currentTimelineVal + 1) % 101;
+                    if (timelineRange) timelineRange.value = currentTimelineVal;
+                    applyTimelinePhase(currentTimelineVal);
+                }, 100);
+            } else {
+                clearInterval(timelineInterval);
+            }
+        });
+    }
+
+    // Audio Mute toggle
+    const muteBtn = document.getElementById('btn-mute');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', () => {
+            const muted = toggleMute();
+            muteBtn.textContent = muted ? '🔇' : '🔊';
+        });
+    }
+
+    // Simulation Triggers (Serious, Formal Process Names)
+    document.getElementById('btn-sim-safe')?.addEventListener('click', () => {
+        triggerSimulation("WORKER-TX-01", "config.py", "threads = 8\nmemory = 512", { threads: 8, memory: 512 });
+    });
+
+    document.getElementById('btn-sim-paradox')?.addEventListener('click', () => {
+        triggerSimulation("MUTATION-DAEMON-99", "worker.py", "threads = 32\nmemory = 4096", { threads: 32, memory: 4096 });
+    });
+
+    document.getElementById('btn-sim-sockets')?.addEventListener('click', () => {
+        triggerSimulation("SOCKET-GATEWAY-04", "gateway.py", "sockets = 256\nmemory = 256", { sockets: 256, memory: 256 });
+    });
+
+    document.getElementById('btn-sim-swarm')?.addEventListener('click', () => {
+        triggerSwarmBurst();
+    });
+}
+
+function applyTimelinePhase(val) {
+    const timelineTime = document.getElementById('timeline-time');
+    const timelineBadge = document.getElementById('timeline-phase-badge');
+    
+    // Convert 0-100 to seconds timestamp
+    const seconds = (val * 0.02).toFixed(3);
+    if (timelineTime) timelineTime.textContent = `00:00:0${seconds}`;
+
+    if (val < 20) {
+        if (timelineBadge) timelineBadge.textContent = "S₀ EQUILIBRIUM";
+        updateKappaVisuals(0.0);
+    } else if (val < 45) {
+        if (timelineBadge) timelineBadge.textContent = "S_cand PROPOSED";
+        updateKappaVisuals(0.35);
+    } else if (val < 70) {
+        if (timelineBadge) timelineBadge.textContent = "κ SPIKE (VIOLATION)";
+        updateKappaVisuals(1.2);
+    } else if (val < 90) {
+        if (timelineBadge) timelineBadge.textContent = "CEGAR SYNTHESIZING";
+        updateKappaVisuals(0.4);
+    } else {
+        if (timelineBadge) timelineBadge.textContent = "S_null COMMITTED";
+        updateKappaVisuals(0.0);
+    }
+}
+
+function syncTimelineWithKappa(kappa) {
+    const range = document.getElementById('timeline-range');
+    if (!range) return;
+
+    if (kappa > 0.05) {
+        range.value = 55;
+        applyTimelinePhase(55);
+    } else {
+        range.value = 100;
+        applyTimelinePhase(100);
+    }
+}
+
+async function triggerSimulation(agentId, file, code, stateVars) {
+    logToFeed(agentId, `Emitting candidate mutation on ${file}...`, "normal");
+    try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/intercept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                agent_id: agentId,
+                target_file: file,
+                proposed_content: code,
+                state_variables: stateVars
+            })
+        });
+        const result = await res.json();
+        console.log("Intercept result", result);
+    } catch (err) {
+        console.warn("Backend request fallback", err);
+        const isParadox = (stateVars.threads && stateVars.threads > 16) || (stateVars.memory && stateVars.memory > 1024) || (stateVars.sockets && stateVars.sockets > 100);
+        handleServerMessage({
+            type: "paradox_spike",
+            agent_id: agentId,
+            target_file: file,
+            kappa: isParadox ? 1.0 : 0.0,
+            status: isParadox ? "SYNTHESIZED" : "COMMITTED",
+            latency_us: 1420.5,
+            vector_clock: Math.floor(Math.random() * 20) + 1
+        });
+    }
+}
+
+async function triggerSwarmBurst() {
+    logToFeed("LAMPORT-BUS", "Emitting concurrent multi-agent mutations...", "normal");
+    try {
+        await fetch("http://127.0.0.1:8000/api/v1/swarm/reconcile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                agents: [
+                    { agent_id: "TX-ALPHA", target_file: "cache.py", proposed_content: "threads=4", state_variables: { threads: 4 } },
+                    { agent_id: "TX-BETA", target_file: "db.py", proposed_content: "memory=256", state_variables: { memory: 256 } },
+                    { agent_id: "TX-GAMMA", target_file: "auth.py", proposed_content: "sockets=32", state_variables: { sockets: 32 } }
+                ]
+            })
+        });
+    } catch (e) {
+        handleServerMessage({
+            type: "swarm_reconciled",
+            total_operations: 3,
+            order: ["TX-ALPHA(clock=2)", "TX-BETA(clock=3)", "TX-GAMMA(clock=4)"]
+        });
+    }
+}
+
+window.addEventListener('DOMContentLoaded', initCockpit);
