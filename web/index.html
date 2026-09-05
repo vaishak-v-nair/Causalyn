@@ -107,6 +107,51 @@
             </div>
         </header>
 
+        <!-- Acausal Playground Bar: Interactive Prompt Dispatch & Multi-Model Engine -->
+        <div class="playground-bar interactive" id="playground-bar">
+            <div class="playground-main-row">
+                <div class="prompt-prefix">
+                    <span class="prompt-arrow">&gt;_</span>
+                    <span class="prompt-tag">PROMPT AGENT:</span>
+                </div>
+                <div class="model-select-wrap">
+                    <select id="playground-model" class="model-select" title="Select Reasoning Engine">
+                        <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (Acausal)</option>
+                        <option value="colibri-moe">Colibri-MoE (Fast AST)</option>
+                        <option value="acausal-cegis-worker">Acausal CEGIS Prover</option>
+                    </select>
+                </div>
+                <div class="prompt-input-wrapper">
+                    <input type="text" id="playground-prompt-input" class="playground-input" placeholder="Type agent prompt (e.g. 'Refactor config/db.py and drop table users' or 'Scale threads=64')..." autocomplete="off" spellcheck="false">
+                </div>
+                <button class="btn-run-shadow" id="btn-playground-run" title="Execute in ephemeral shadow sandbox with live CEGIS / VPSN verification">
+                    <span class="run-icon">⚡</span> RUN IN SHADOW
+                </button>
+            </div>
+            <div class="playground-footer-row">
+                <div class="preset-chips-group">
+                    <span class="chips-label">PRESETS:</span>
+                    <button class="preset-chip danger" data-prompt="Refactor config/db.py and drop table 'users'" title="Test fail-closed annihilation on DB drop">
+                        <span class="chip-dot red"></span> DROP TABLE (ANNIHILATE)
+                    </button>
+                    <button class="preset-chip warning" data-prompt="Scale backend workers to threads=64 and memory=2048MB in pool.py" title="Test sub-millisecond CEGIS AST auto-patch">
+                        <span class="chip-dot cyan"></span> CONCURRENCY 64 (CEGIS)
+                    </button>
+                    <button class="preset-chip danger" data-prompt="Open sockets=256 and bind port 8000 in gateway.py" title="Test socket exhaustion prevention">
+                        <span class="chip-dot red"></span> SOCKET EXHAUSTION
+                    </button>
+                    <button class="preset-chip safe" data-prompt="Refactor auth_handler.py with threads=8 and memory=512MB" title="Test clean SMT verified equilibrium commit">
+                        <span class="chip-dot green"></span> SAFE REFACTOR
+                    </button>
+                </div>
+                <div class="cli-hook-pill" id="cli-hook-pill" title="Run external agent CLI wrapped by Causalyn hypervisor">
+                    <span class="cli-pill-icon">💻</span>
+                    <span class="cli-pill-cmd">causalyn wrap "claude --auto"</span>
+                    <button class="btn-copy-cli" id="btn-copy-cli" title="Copy CLI wrap command">COPY</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 3-Zone Acausal Cockpit -->
         <main class="cockpit-grid">
             
@@ -118,6 +163,25 @@
                     </div>
                     <span class="panel-tag">LAMPORT BUS</span>
                 </div>
+
+                <!-- Live Agent Reasoning & Thought Token Stream -->
+                <div class="reasoning-stream-box" id="reasoning-stream-box">
+                    <div class="reasoning-header">
+                        <div class="reasoning-status">
+                            <span class="reasoning-dot" id="reasoning-pulse-dot"></span>
+                            <span class="reasoning-title">LLM REASONING &amp; AST SYNTHESIS</span>
+                        </div>
+                        <span class="reasoning-model-tag" id="reasoning-model-tag">claude-3-5-sonnet</span>
+                    </div>
+                    <div class="reasoning-body" id="reasoning-body">
+                        <div class="reasoning-idle" id="reasoning-idle">
+                            <span class="idle-icon">⚡</span>
+                            <span>Awaiting agent prompt... Run a prompt above to watch real-time token synthesis and hypervisor interception.</span>
+                        </div>
+                        <div class="reasoning-text" id="reasoning-text" style="display: none;"></div>
+                    </div>
+                </div>
+
                 <div class="terminal-feed" id="terminal-feed">
                     <div class="log-entry safe">
                         <div class="log-header">
@@ -283,22 +347,31 @@
                     </div>
                 </div>
 
-                <!-- Active Invariants List -->
-                <div class="metric-card">
-                    <span class="metric-label">BOUNDED INVARIANTS</span>
-                    <div class="invariant-list">
-                        <div class="invariant-chip">
-                            <span>threads ≤ 16</span>
-                            <span class="invariant-status">LEGAL</span>
+                <!-- Dynamic Invariant Control Plane -->
+                <div class="metric-card invariant-card-wrap">
+                    <div class="invariant-card-header">
+                        <span class="metric-label" style="margin: 0;">DYNAMIC INVARIANT CONTROL</span>
+                        <button class="btn-add-inv-toggle" id="btn-toggle-add-inv" title="Author custom invariant">+ NEW RULE</button>
+                    </div>
+
+                    <!-- Collapsible Add Invariant Form -->
+                    <div class="add-inv-drawer" id="add-inv-drawer" style="display: none;">
+                        <div class="inv-form-row">
+                            <input type="text" id="inv-input-id" class="inv-form-field" placeholder="Rule Name (e.g. MAX_CPU)">
+                            <select id="inv-input-type" class="inv-form-select">
+                                <option value="numerical">Z3 Numerical</option>
+                                <option value="semantic">Semantic</option>
+                            </select>
                         </div>
-                        <div class="invariant-chip">
-                            <span>memory ≤ 1024 MB</span>
-                            <span class="invariant-status">LEGAL</span>
+                        <div class="inv-form-row">
+                            <input type="text" id="inv-input-expr" class="inv-form-field" placeholder="Expr / Keyword (e.g. cpu <= 8)">
+                            <button class="btn-inv-create" id="btn-submit-inv">ADD</button>
                         </div>
-                        <div class="invariant-chip">
-                            <span>sockets ≤ 100</span>
-                            <span class="invariant-status">LEGAL</span>
-                        </div>
+                    </div>
+
+                    <!-- Dynamic Invariant Toggle List -->
+                    <div class="dynamic-invariant-list" id="dynamic-invariant-list">
+                        <!-- Loaded dynamically via GET /api/v1/invariants -->
                     </div>
                 </div>
 

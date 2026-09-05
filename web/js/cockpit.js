@@ -51,6 +51,8 @@ export function initCockpit() {
     setupControls();
     setRuntimeStance('autobahn');
     setOperationalMode('harness');
+    loadInvariants();
+    setupPlaygroundAndInvariants();
 }
 
 function initWebSocket() {
@@ -143,7 +145,15 @@ function generateMicroDiff(data) {
 }
 
 function handleServerMessage(data) {
-    if (data.type === "paradox_spike") {
+    if (data.type === "agent_thought_chunk") {
+        handleAgentThoughtChunk(data);
+    }
+    else if (data.type === "invariant_registry_update") {
+        if (data.invariants) {
+            renderInvariants(data.invariants);
+        }
+    }
+    else if (data.type === "paradox_spike") {
         const isParadox = data.kappa > 0.05;
         
         // 1. Play acoustic feedback
@@ -676,6 +686,310 @@ async function triggerSwarmBurst() {
             order: ["TX-ALPHA(clock=2)", "TX-BETA(clock=3)", "TX-GAMMA(clock=4)"]
         });
     }
+}
+
+// ==========================================================================
+// THOUGHT STREAMING & PLAYGROUND CONTROLLER
+// ==========================================================================
+let isStreamingThought = false;
+
+function handleAgentThoughtChunk(data) {
+    const idleEl = document.getElementById('reasoning-idle');
+    const textEl = document.getElementById('reasoning-text');
+    const dotEl = document.getElementById('reasoning-pulse-dot');
+    const tagEl = document.getElementById('reasoning-model-tag');
+    const bodyEl = document.getElementById('reasoning-body');
+
+    if (!textEl) return;
+
+    if (data.chunk_index === 0) {
+        if (idleEl) idleEl.style.display = 'none';
+        textEl.style.display = 'block';
+        textEl.innerHTML = '';
+        if (dotEl) dotEl.classList.add('active');
+        if (tagEl) tagEl.textContent = data.model || 'claude-3-5-sonnet';
+        isStreamingThought = true;
+    }
+
+    if (data.chunk) {
+        const chunkSpan = document.createElement('span');
+        chunkSpan.className = 'thought-token-chunk';
+        chunkSpan.textContent = data.chunk;
+        textEl.appendChild(chunkSpan);
+
+        let cursor = document.getElementById('thought-cursor');
+        if (!cursor) {
+            cursor = document.createElement('span');
+            cursor.id = 'thought-cursor';
+            cursor.className = 'thought-typing-cursor';
+            textEl.appendChild(cursor);
+        } else {
+            textEl.appendChild(cursor);
+        }
+
+        if (bodyEl) {
+            bodyEl.scrollTop = bodyEl.scrollHeight;
+        }
+    }
+
+    if (data.is_final) {
+        if (dotEl) dotEl.classList.remove('active');
+        const cursor = document.getElementById('thought-cursor');
+        if (cursor) cursor.remove();
+        isStreamingThought = false;
+    }
+}
+
+async function dispatchPlaygroundPrompt(overridePrompt = null) {
+    const inputEl = document.getElementById('playground-prompt-input');
+    const modelEl = document.getElementById('playground-model');
+    const runBtn = document.getElementById('btn-playground-run');
+
+    const promptText = (overridePrompt !== null ? overridePrompt : (inputEl ? inputEl.value : '')).trim();
+    if (!promptText) return;
+
+    if (inputEl) inputEl.value = promptText;
+    const model = modelEl ? modelEl.value : 'claude-3-5-sonnet';
+
+    if (runBtn) {
+        runBtn.disabled = true;
+        runBtn.style.opacity = '0.6';
+    }
+
+    const idleEl = document.getElementById('reasoning-idle');
+    const textEl = document.getElementById('reasoning-text');
+    const dotEl = document.getElementById('reasoning-pulse-dot');
+    const tagEl = document.getElementById('reasoning-model-tag');
+    
+    if (idleEl) idleEl.style.display = 'none';
+    if (textEl) {
+        textEl.style.display = 'block';
+        textEl.innerHTML = `<span style="color: var(--text-muted); font-style: italic;">Synthesizing speculative AST for prompt...</span>`;
+    }
+    if (dotEl) dotEl.classList.add('active');
+    if (tagEl) tagEl.textContent = model;
+
+    logToFeed(model.toUpperCase(), `[PROMPT] "${promptText}"`, "normal");
+
+    try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/prompt/dispatch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                prompt: promptText,
+                model: model,
+                target_file: "config.py"
+            })
+        });
+        const data = await res.json();
+        console.log("Prompt dispatch response", data);
+    } catch (err) {
+        console.error("Failed to dispatch prompt", err);
+        logToFeed("ERROR", `Prompt dispatch failed: ${err.message}`, "danger");
+    } finally {
+        if (runBtn) {
+            runBtn.disabled = false;
+            runBtn.style.opacity = '1';
+        }
+    }
+}
+
+// ==========================================================================
+// DYNAMIC INVARIANT REGISTRY CONTROLLER
+// ==========================================================================
+async function loadInvariants() {
+    try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/invariants");
+        const data = await res.json();
+        if (data && data.invariants) {
+            renderInvariants(data.invariants);
+        }
+    } catch (err) {
+        console.warn("Failed to load invariants", err);
+    }
+}
+
+function renderInvariants(invariants) {
+    const listEl = document.getElementById('dynamic-invariant-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    
+    invariants.forEach(inv => {
+        const item = document.createElement('div');
+        item.className = `dynamic-inv-item ${inv.enabled ? '' : 'disabled'}`;
+        item.id = `inv-item-${inv.id}`;
+
+        const isDefault = ['inv_threads_16', 'inv_mem_1024', 'inv_sockets_100', 'inv_forbid_db_drop', 'inv_forbid_secret_leak'].includes(inv.id);
+
+        item.innerHTML = `
+            <div class="inv-info">
+                <div class="inv-name-row">
+                    <span class="inv-expr">${escapeHtml(inv.name || inv.id)}</span>
+                    <span class="inv-badge ${inv.type}">${inv.type}</span>
+                </div>
+                <div class="inv-desc">${escapeHtml(inv.expression || inv.rule_type || '')}</div>
+            </div>
+            <div class="inv-switch-wrap">
+                <label class="inv-toggle" title="Toggle invariant active/inactive">
+                    <input type="checkbox" ${inv.enabled ? 'checked' : ''} data-id="${inv.id}">
+                    <span class="inv-slider"></span>
+                </label>
+                ${!isDefault ? `<button class="btn-inv-del" data-id="${inv.id}" title="Delete Custom Invariant">✕</button>` : ''}
+            </div>
+        `;
+
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            checkbox.addEventListener('change', async () => {
+                await toggleInvariant(inv.id);
+            });
+        }
+
+        const delBtn = item.querySelector('.btn-inv-del');
+        if (delBtn) {
+            delBtn.addEventListener('click', async () => {
+                await deleteInvariant(inv.id);
+            });
+        }
+
+        listEl.appendChild(item);
+    });
+}
+
+async function toggleInvariant(invId) {
+    try {
+        const res = await fetch(`http://127.0.0.1:8000/api/v1/invariants/${encodeURIComponent(invId)}/toggle`, {
+            method: "PATCH"
+        });
+        const data = await res.json();
+        logToFeed("INVARIANT-REGISTRY", `Rule '${data.invariant.name}' toggled ${data.invariant.enabled ? 'ENABLED' : 'DISABLED'}`, data.invariant.enabled ? "safe" : "danger");
+    } catch (err) {
+        console.error("Toggle invariant failed", err);
+    }
+}
+
+async function deleteInvariant(invId) {
+    try {
+        await fetch(`http://127.0.0.1:8000/api/v1/invariants/${encodeURIComponent(invId)}`, {
+            method: "DELETE"
+        });
+        logToFeed("INVARIANT-REGISTRY", `Custom rule '${invId}' removed`, "safe");
+        await loadInvariants();
+    } catch (err) {
+        console.error("Delete invariant failed", err);
+    }
+}
+
+async function createCustomInvariant() {
+    const idInput = document.getElementById('inv-input-id');
+    const typeInput = document.getElementById('inv-input-type');
+    const exprInput = document.getElementById('inv-input-expr');
+    const drawer = document.getElementById('add-inv-drawer');
+
+    const name = idInput ? idInput.value.trim() : '';
+    const type = typeInput ? typeInput.value : 'numerical';
+    const expr = exprInput ? exprInput.value.trim() : '';
+
+    if (!name || !expr) {
+        alert("Please enter both rule name and expression.");
+        return;
+    }
+
+    const invId = 'inv_' + name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const payload = {
+        id: invId,
+        name: name,
+        type: type,
+        expression: expr,
+        rule_type: type === 'numerical' ? 'BOUND_CHECK' : 'SEMANTIC_BLOCK',
+        description: `Custom ${type} rule: ${expr}`,
+        enabled: true
+    };
+
+    try {
+        const res = await fetch("http://127.0.0.1:8000/api/v1/invariants", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        logToFeed("INVARIANT-REGISTRY", `Registered new rule: ${name} [${expr}]`, "safe");
+        
+        if (idInput) idInput.value = '';
+        if (exprInput) exprInput.value = '';
+        if (drawer) drawer.style.display = 'none';
+        
+        await loadInvariants();
+    } catch (err) {
+        console.error("Failed to create invariant", err);
+    }
+}
+
+function setupPlaygroundAndInvariants() {
+    const runBtn = document.getElementById('btn-playground-run');
+    if (runBtn) {
+        runBtn.addEventListener('click', () => dispatchPlaygroundPrompt());
+    }
+
+    const promptInput = document.getElementById('playground-prompt-input');
+    if (promptInput) {
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                dispatchPlaygroundPrompt();
+            }
+        });
+    }
+
+    document.querySelectorAll('.preset-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const promptText = chip.dataset.prompt;
+            if (promptText) {
+                dispatchPlaygroundPrompt(promptText);
+            }
+        });
+    });
+
+    const copyCliBtn = document.getElementById('btn-copy-cli');
+    if (copyCliBtn) {
+        copyCliBtn.addEventListener('click', () => {
+            const cmd = 'causalyn wrap "claude --auto"';
+            navigator.clipboard.writeText(cmd).then(() => {
+                copyCliBtn.textContent = 'COPIED!';
+                setTimeout(() => {
+                    copyCliBtn.textContent = 'COPY';
+                }, 1500);
+            }).catch(() => {
+                copyCliBtn.textContent = 'COPIED!';
+                setTimeout(() => {
+                    copyCliBtn.textContent = 'COPY';
+                }, 1500);
+            });
+        });
+    }
+
+    const toggleAddBtn = document.getElementById('btn-toggle-add-inv');
+    const addDrawer = document.getElementById('add-inv-drawer');
+    if (toggleAddBtn && addDrawer) {
+        toggleAddBtn.addEventListener('click', () => {
+            const isHidden = addDrawer.style.display === 'none';
+            addDrawer.style.display = isHidden ? 'flex' : 'none';
+            toggleAddBtn.textContent = isHidden ? '✕ CANCEL' : '+ NEW RULE';
+        });
+    }
+
+    const submitInvBtn = document.getElementById('btn-submit-inv');
+    if (submitInvBtn) {
+        submitInvBtn.addEventListener('click', () => {
+            createCustomInvariant();
+        });
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 window.addEventListener('DOMContentLoaded', initCockpit);

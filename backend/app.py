@@ -3,20 +3,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from pathlib import Path
 import asyncio
 import json
 import time
 import os
+import sys
 import math
+from pathlib import Path
+
+# Ensure backend directory is in sys.path for relative core imports
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core.ambient_fabric import AmbientFabric
 from core.cegar_synthesizer import AcausalSynthesizer
 from core.manim_engine import ManimEngine
 from core.crdt_state_bus import HyperDimensionalStateBus, SwarmOperation
+from core.invariant_registry import registry
+from core.agent_reasoning import AgentReasoningEngine
 from z3 import Int
+from typing import Optional
 
-app = FastAPI(title="Causalyn Acausal Control Plane", version="3.1.0-BRIGHT")
+app = FastAPI(title="Causalyn Acausal Control Plane", version="3.2.0-PLAYGROUND")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,6 +40,20 @@ class AgentToolCall(BaseModel):
 
 class SwarmBatchRequest(BaseModel):
     agents: list[AgentToolCall]
+
+class PromptDispatchRequest(BaseModel):
+    prompt: str
+    model: str = "claude-3-5-sonnet"
+    target_file: Optional[str] = None
+
+class InvariantCreateRequest(BaseModel):
+    name: str
+    kind: str = "numerical"
+    threshold: Optional[int] = None
+    target_var: Optional[str] = "threads"
+    operator: Optional[str] = "<="
+    pattern: Optional[str] = None
+    description: Optional[str] = None
 
 class TelemetryBroadcaster:
     def __init__(self):
@@ -60,6 +81,7 @@ manim = ManimEngine()
 demo_root = Path(__file__).resolve().parent.parent / "runtime" / "demo_workspace"
 fabric = AmbientFabric(workspace_root=str(demo_root) if demo_root.exists() else "../")
 state_bus = HyperDimensionalStateBus()
+reasoning_engine = AgentReasoningEngine(synthesizer, fabric)
 
 web_dir = Path(__file__).resolve().parent.parent / "web"
 
@@ -103,14 +125,37 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
     state_bus.register_agent(call.agent_id)
     op = state_bus.propose_mutation(call.agent_id, call.target_file, call.proposed_content)
     
-    invariants = [
-        lambda v: v.get('threads', Int('threads')) <= 16,
-        lambda v: v.get('memory', Int('memory')) <= 1024,
-        lambda v: v.get('sockets', Int('sockets')) <= 100
-    ]
+    # Check Semantic Invariants (FORBID_DB_DROP, FORBID_SECRET_LEAK, etc.)
+    semantic_ok, violations = registry.evaluate_semantic_and_path(
+        call.target_file, call.proposed_content, call.state_variables
+    )
+    
+    # Compile active numerical Z3 constraints from registry
+    invariants = registry.compile_z3_constraints()
     if call.state_variables.get('sockets', 0) > 200:
-        # Fatal exhaustion: contradictory invariant forces unrecoverable UNSAT relaxation
         invariants.append(lambda v: v.get('sockets', Int('sockets')) > 200)
+        violations.append("NON_NEGOTIABLE_DESCRIPTOR_EXHAUSTION (sockets > 200)")
+        semantic_ok = False
+        
+    if not semantic_ok:
+        duration_us = (time.perf_counter_ns() - t_start) / 1000.0
+        event_payload = {
+            "type": "paradox_spike",
+            "timestamp": time.time(),
+            "agent_id": call.agent_id,
+            "target_file": call.target_file,
+            "vector_clock": op.clock,
+            "kappa": 999.0,
+            "status": "ANNIHILATED",
+            "latency_us": duration_us,
+            "patch": {"annihilated": True, "violations": violations},
+            "proposed_state": call.state_variables,
+            "proposed_content": call.proposed_content,
+            "synthesized_code": None,
+            "violated_invariants": violations
+        }
+        await telemetry.emit_telemetry(event_payload)
+        return event_payload
     
     with fabric.spawn_shadow_continuum(call.target_file, initial_content=call.proposed_content) as shadow_path:
         kappa, code, patch = await asyncio.to_thread(
@@ -134,6 +179,7 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
         elif patch and patch.get("corrected"):
             status = "SYNTHESIZED"
             shadow_file.write_text(code, encoding="utf-8")
+            fabric.atomic_commit(shadow_path, call.target_file)
         else:
             status = "ANNIHILATED"
             
@@ -149,23 +195,103 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
             "patch": patch,
             "proposed_state": call.state_variables,
             "proposed_content": call.proposed_content,
-            "synthesized_code": code if status == "SYNTHESIZED" else None
+            "synthesized_code": code if status == "SYNTHESIZED" else None,
+            "violated_invariants": [f"Numerical Boundary: {k}" for k in patch.get("values", {})] if patch and patch.get("values") else []
         }
         await telemetry.emit_telemetry(event_payload)
 
         # Trigger headless manim visualization asynchronously
         bg_tasks.add_task(async_manim_render, kappa, call.agent_id, call.target_file)
 
-        return {
-            "status": status,
-            "kappa": kappa,
-            "latency_us": duration_us,
-            "vector_clock": op.clock,
-            "synthesized_code": code if status == "SYNTHESIZED" else None,
-            "patch": patch,
-            "proposed_state": call.state_variables,
-            "proposed_content": call.proposed_content
-        }
+        return event_payload
+
+@app.post("/api/v1/prompt/dispatch")
+async def dispatch_agent_prompt(req: PromptDispatchRequest, bg_tasks: BackgroundTasks):
+    """
+    Receives an interactive user prompt from the Acausal Playground bar or CLI wrapper,
+    streams reasoning thought tokens to the cockpit in real-time, and evaluates candidate mutations.
+    """
+    async def token_emitter(token: str):
+        await telemetry.emit_telemetry({
+            "type": "agent_thought_chunk",
+            "token": token,
+            "model": req.model,
+            "agent_id": f"{req.model.upper()}-PLAYGROUND",
+            "timestamp": time.time()
+        })
+
+    result = await reasoning_engine.execute_prompt_pipeline(
+        prompt=req.prompt,
+        model=req.model,
+        target_file=req.target_file,
+        token_callback=token_emitter
+    )
+
+    # Broadcast final paradox_spike event so 3D continuum and ledger react
+    event_payload = {
+        "type": "paradox_spike",
+        "timestamp": time.time(),
+        "agent_id": result["agent_id"],
+        "target_file": result["target_file"],
+        "vector_clock": int(time.time() * 1000) % 100,
+        "kappa": result["kappa"],
+        "status": result["status"],
+        "latency_us": result["latency_us"],
+        "patch": result.get("patch"),
+        "proposed_state": result["proposed_state"],
+        "proposed_content": result["proposed_content"],
+        "synthesized_code": result.get("synthesized_code"),
+        "violated_invariants": result.get("violated_invariants", []),
+        "prompt": req.prompt
+    }
+    await telemetry.emit_telemetry(event_payload)
+    bg_tasks.add_task(async_manim_render, result["kappa"], result["agent_id"], result["target_file"])
+
+    return result
+
+@app.get("/api/v1/invariants")
+async def list_invariants():
+    """Returns all active and registered invariants."""
+    return {"invariants": registry.get_all()}
+
+@app.post("/api/v1/invariants")
+async def create_invariant(inv: InvariantCreateRequest):
+    """Adds a new custom invariant and notifies connected cockpits."""
+    created = registry.add_invariant(inv.model_dump())
+    await telemetry.emit_telemetry({
+        "type": "invariant_registry_update",
+        "action": "added",
+        "invariant": created
+    })
+    return {"status": "CREATED", "invariant": created}
+
+@app.patch("/api/v1/invariants/{inv_id}/toggle")
+async def toggle_invariant(inv_id: str):
+    """Toggles active state of an invariant."""
+    ok = registry.toggle(inv_id)
+    inv = registry.get(inv_id)
+    if ok:
+        await telemetry.emit_telemetry({
+            "type": "invariant_registry_update",
+            "action": "toggled",
+            "inv_id": inv_id,
+            "invariant": inv
+        })
+        return {"status": "UPDATED", "invariant": inv}
+    return {"status": "NOT_FOUND"}
+
+@app.delete("/api/v1/invariants/{inv_id}")
+async def delete_invariant(inv_id: str):
+    """Deletes a custom invariant."""
+    ok = registry.delete_invariant(inv_id)
+    if ok:
+        await telemetry.emit_telemetry({
+            "type": "invariant_registry_update",
+            "action": "deleted",
+            "inv_id": inv_id
+        })
+        return {"status": "DELETED", "inv_id": inv_id}
+    return {"status": "NOT_FOUND_OR_BUILTIN"}
 
 @app.post("/api/v1/swarm/reconcile")
 async def reconcile_swarm_mutations(batch: SwarmBatchRequest):
@@ -222,4 +348,9 @@ if web_dir.exists():
         if index_file.exists():
             return FileResponse(index_file)
         return {"message": "Web dashboard not found"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=False)
+
 
