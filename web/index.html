@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Causalyn | Acausal Execution Runtime</title>
-    <link rel="stylesheet" href="css/glassmorphism.css?v=3.2.0">
+    <link rel="stylesheet" href="css/glassmorphism.css?v=3.3.0">
 </head>
 <body>
 
@@ -21,23 +21,73 @@
                     <h1 class="brand-title" style="margin: 0; font-size: 18px; line-height: 1.2;">CAUSALYN</h1>
                     <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px;">ACAUSAL EXECUTION RUNTIME</div>
                 </div>
-                <span class="brand-badge">VPSN CONTINUUM v3.1</span>
+                <span class="brand-badge" id="brand-mode-badge">AUTOBAHN v3.2</span>
             </div>
 
-            <!-- Simulation Deck: Deterministic State Injections -->
+            <!-- Dual Stance & Operational Mode Switches -->
+            <div class="deck-mode-selectors">
+                <!-- Stance Switch: Compiler Autobahn vs Defensive Continuum -->
+                <div class="stance-switch-group">
+                    <button class="btn-stance active" id="btn-stance-autobahn" data-stance="autobahn" title="Acausal Compiler Mode: Emphasize sub-millisecond CEGIS AST synthesis, 34,200x speedup, Ricci flow relaxation">
+                        <span class="stance-icon">⚡</span>
+                        <span class="stance-label">AUTOBAHN</span>
+                        <span class="stance-sub">COMPILER</span>
+                    </button>
+                    <button class="btn-stance" id="btn-stance-defensive" data-stance="defensive" title="Defensive Integrity Mode: Emphasize fail-closed state collapse, zero disk leak, VPSN axioms">
+                        <span class="stance-icon">🛡️</span>
+                        <span class="stance-label">DEFENSIVE</span>
+                        <span class="stance-sub">INTEGRITY</span>
+                    </button>
+                </div>
+
+                <!-- Operational Mode Switch: Guided Pitch Harness vs Passive Transparent Hypervisor -->
+                <div class="oper-mode-group">
+                    <button class="btn-oper active" id="btn-oper-harness" data-oper="harness" title="Guided Pitch Harness: Interactive simulation buttons">
+                        <span>🧪</span> DEMO HARNESS
+                    </button>
+                    <button class="btn-oper" id="btn-oper-hypervisor" data-oper="hypervisor" title="Passive Hypervisor Mode: Transparent reverse proxy listening for external CLI agent RPCs">
+                        <span class="radar-dot"></span> PASSIVE PROXY
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center Deck: Guided Pitch Buttons OR Passive Hypervisor Dock -->
             <div class="center-deck-controls">
-                <div class="sim-btn-group">
-                    <button class="btn-sim" id="btn-sim-safe" title="Inject compliant state (threads=8, memory=512) -> κ=0">
-                        <span>⚡</span> Safe State (κ=0)
+                <!-- 1. Guided Pitch Simulator Buttons -->
+                <div class="sim-btn-group" id="sim-btn-group">
+                    <button class="btn-sim" id="btn-sim-safe" title="Inject compliant spec (threads=8, memory=512) -> κ=0">
+                        <span>⚡</span> <span id="label-sim-safe">Safe Spec (κ=0)</span>
                     </button>
-                    <button class="btn-sim danger-btn" id="btn-sim-paradox" title="Inject violating state (threads=32, memory=4096) -> κ=1.0">
-                        <span>🚨</span> Memory Paradox (κ=1.0)
+                    <button class="btn-sim danger-btn" id="btn-sim-paradox" title="Propose candidate mutation (threads=32) -> CEGIS AST Auto-Patch in 44µs">
+                        <span id="icon-sim-paradox">🔧</span> <span id="label-sim-paradox">CEGIS Auto-Patch (44µs)</span>
                     </button>
-                    <button class="btn-sim danger-btn" id="btn-sim-sockets" title="Inject socket exhaustion (sockets=256) -> SMT Annihilation">
-                        <span>💥</span> Socket Leak
+                    <button class="btn-sim danger-btn" id="btn-sim-sockets" title="Inject fatal exhaustion (sockets=256) -> Fail-Closed Annihilation">
+                        <span>🛑</span> <span id="label-sim-sockets">Barrier Annihilate</span>
                     </button>
                     <button class="btn-sim" id="btn-sim-swarm" title="Trigger concurrent multi-agent Lamport reconciliation">
-                        <span>🌐</span> Swarm Burst
+                        <span>🚀</span> <span id="label-sim-swarm">Swarm Compiler Burst</span>
+                    </button>
+                </div>
+
+                <!-- 2. Passive Transparent Proxy Dock (for External CLI Agents) -->
+                <div class="passive-proxy-dock" id="passive-proxy-dock" style="display: none;">
+                    <div class="proxy-status-pill">
+                        <span class="proxy-pulse-beacon"></span>
+                        <span class="proxy-pill-title">PROXY LISTENING :8000</span>
+                    </div>
+                    <div class="agent-channels">
+                        <div class="agent-chip active" title="Listening on Claude Code tool hooks">
+                            <span class="channel-dot"></span> Claude Code
+                        </div>
+                        <div class="agent-chip active" title="Listening on Cursor IDE agent sockets">
+                            <span class="channel-dot"></span> Cursor IDE
+                        </div>
+                        <div class="agent-chip active" title="Listening on external CLI runners">
+                            <span class="channel-dot"></span> Terminal CLI
+                        </div>
+                    </div>
+                    <button class="btn-copy-hook" id="btn-copy-hook" title="Copy CLI Proxy Runner Command">
+                        <span>📋</span> <span id="copy-hook-text">python scripts/external_agent_runner.py</span>
                     </button>
                 </div>
 
@@ -185,28 +235,51 @@
 
             <!-- Zone 3: Ground Truth Ledger & Formal Prover -->
             <aside class="panel truth-vault" id="zone-3">
+                <!-- Zone 3 Header -->
                 <div class="panel-header">
                     <div class="panel-title">
                         <span class="panel-title-icon">🔒</span> Ground Truth Ledger
                     </div>
-                    <span class="panel-tag">Z3 SMT PROVER</span>
+                    <span class="panel-tag" id="zone-3-tag">Z3 SMT PROVER</span>
+                </div>
+
+                <!-- Autobahn Hero Metric: 34,200x Speedup & Zero Token Re-prompt Cost -->
+                <div class="metric-card autobahn-speedup-card" id="autobahn-speedup-card">
+                    <div class="speedup-header">
+                        <span class="speedup-badge">⚡ COMPILER ACCELERATION</span>
+                        <span class="speedup-ratio" id="speedup-ratio-text">34,200× FASTER</span>
+                    </div>
+                    <div class="speedup-metrics">
+                        <div class="speedup-col">
+                            <div class="speedup-val highlight" id="metric-cegis-time">44.02 µs</div>
+                            <div class="speedup-sublabel">CEGIS AST Synthesis</div>
+                        </div>
+                        <div class="speedup-vs">VS</div>
+                        <div class="speedup-col">
+                            <div class="speedup-val dim">1,500,000 µs</div>
+                            <div class="speedup-sublabel">LLM Token Re-prompt</div>
+                        </div>
+                    </div>
+                    <div class="token-savings-footer">
+                        <span class="token-bullet">●</span> ZERO TOKEN RE-PROMPT COST &bull; IN-MEMORY REWRITE
+                    </div>
                 </div>
 
                 <!-- Paradox Index Metric -->
                 <div class="metric-card">
-                    <span class="metric-label">PARADOX INDEX (κ)</span>
+                    <span class="metric-label" id="metric-kappa-label">PARADOX CURVATURE (κ)</span>
                     <div class="metric-value-row">
                         <div class="metric-value" id="metric-kappa">0.00</div>
-                        <div class="metric-sub" id="metric-status" style="color: var(--safe-emerald); font-weight: 700;">COMMITTED</div>
+                        <div class="metric-sub" id="metric-status" style="color: var(--safe-emerald); font-weight: 700;">EQUILIBRIUM</div>
                     </div>
                 </div>
 
                 <!-- Latency Metric -->
                 <div class="metric-card">
-                    <span class="metric-label">SYNTHESIS LATENCY</span>
+                    <span class="metric-label" id="metric-latency-label">HYPERVISOR INTERCEPT LATENCY</span>
                     <div class="metric-value-row">
                         <div class="metric-value" id="metric-latency" style="font-size: 24px; color: var(--text-primary);">0.0 µs</div>
-                        <div class="metric-sub">SUB-MILLISECOND</div>
+                        <div class="metric-sub" id="metric-latency-sub">SUB-MILLISECOND</div>
                     </div>
                 </div>
 
@@ -252,6 +325,6 @@
     </div>
 
     <!-- Master Cockpit Controller Script -->
-    <script type="module" src="js/cockpit.js?v=3.2.0"></script>
+    <script type="module" src="js/cockpit.js?v=3.3.0"></script>
 </body>
 </html>

@@ -1,11 +1,13 @@
-import { initManifold, updateKappaVisuals, setCameraPreset } from './manifold_stream.js?v=3.2.0';
-import { initAudioEngine, playEquilibriumChime, playParadoxGlitch, playSynthesisSweep, toggleMute } from './audio_engine.js?v=3.2.0';
+import { initManifold, updateKappaVisuals, setCameraPreset } from './manifold_stream.js?v=3.3.0';
+import { initAudioEngine, playEquilibriumChime, playParadoxGlitch, playSynthesisSweep, toggleMute } from './audio_engine.js?v=3.3.0';
 
 let ws = null;
 let isPlayingTimeline = false;
 let timelineInterval = null;
 let currentTimelineVal = 0;
 let currentActiveView = 'manifold';
+let currentRuntimeStance = 'autobahn'; // Default to Acausal Autobahn (Performance/Compiler)
+let currentOperationalMode = 'harness'; // 'harness' or 'hypervisor'
 
 const THEOREM_METADATA = {
     'paradox': {
@@ -47,6 +49,8 @@ export function initCockpit() {
     initAudioEngine();
     initWebSocket();
     setupControls();
+    setRuntimeStance('autobahn');
+    setOperationalMode('harness');
 }
 
 function initWebSocket() {
@@ -157,8 +161,10 @@ function handleServerMessage(data) {
 
         // 3. Log to Swarm Feed with micro-diff
         const typeClass = isParadox ? "danger" : "safe";
+        const isExternal = data.agent_id && (data.agent_id.includes('Claude') || data.agent_id.includes('Cursor') || data.agent_id.includes('Terminal') || data.agent_id.includes('Agent'));
+        const agentPrefix = isExternal ? `📡 PROXY: ${data.agent_id}` : data.agent_id || "WORKER";
         const msg = `[${data.status}] ${data.target_file} | κ=${data.kappa.toFixed(2)} | Latency: ${data.latency_us.toFixed(1)}µs`;
-        logToFeed(data.agent_id || "WORKER", msg, typeClass, data.vector_clock || 1, diffSnippet);
+        logToFeed(agentPrefix, msg, typeClass, data.vector_clock || 1, diffSnippet);
 
         // 4. Update HUD Metrics
         updateMetrics(data.kappa, data.latency_us, data.status);
@@ -242,6 +248,8 @@ function updateMetrics(kappa, latencyUs, status) {
     const kappaEl = document.getElementById('metric-kappa');
     const latencyEl = document.getElementById('metric-latency');
     const statusEl = document.getElementById('metric-status');
+    const cegisTimeEl = document.getElementById('metric-cegis-time');
+    const speedupRatioEl = document.getElementById('speedup-ratio-text');
 
     if (kappaEl) {
         kappaEl.textContent = kappa.toFixed(2);
@@ -256,9 +264,24 @@ function updateMetrics(kappa, latencyUs, status) {
         latencyEl.textContent = `${latencyUs.toFixed(1)} µs`;
     }
 
+    if (cegisTimeEl) {
+        cegisTimeEl.textContent = `${latencyUs.toFixed(1)} µs`;
+    }
+
+    if (speedupRatioEl) {
+        // Speedup vs 1.5s LLM token retry loop
+        const factor = Math.max(1, Math.round(1500000 / Math.max(latencyUs, 1)));
+        speedupRatioEl.textContent = `${factor.toLocaleString()}× FASTER`;
+    }
+
     if (statusEl) {
-        statusEl.textContent = status;
-        statusEl.style.color = kappa > 0.05 ? '#FF1E44' : '#10B981';
+        if (currentRuntimeStance === 'autobahn' && status === 'SYNTHESIZED') {
+            statusEl.textContent = 'RELAXED & REPAIRED';
+            statusEl.style.color = '#00F3FF';
+        } else {
+            statusEl.textContent = status;
+            statusEl.style.color = kappa > 0.05 ? '#FF1E44' : '#10B981';
+        }
     }
 }
 
@@ -267,18 +290,20 @@ function renderZ3Proof(data, diffSnippet = '') {
     if (!box) return;
 
     const time = new Date().toISOString().substring(11, 19);
+    const isExternal = data.agent_id && (data.agent_id.includes('Claude') || data.agent_id.includes('Cursor') || data.agent_id.includes('Agent') || data.agent_id.includes('Terminal'));
+    
     let proofHtml = `
-        <div class="proof-line"><span class="proof-tag">[${time}]</span> AST Node: ${data.target_file}</div>
+        <div class="proof-line"><span class="proof-tag">[${time}]</span> ${isExternal ? '★ PROXY INTERCEPT: ' : ''}${data.agent_id || 'NODE'} ➔ ${data.target_file}</div>
         <div class="proof-line">SMT Invariants: (threads ≤ 16) ∧ (mem ≤ 1024) ∧ (sockets ≤ 100)</div>
     `;
 
     if (data.kappa > 0.05) {
         proofHtml += `
             <div class="proof-line" style="color: #FF1E44;"><strong>UNSAT:</strong> Constraint violated (κ = ${data.kappa.toFixed(2)})</div>
-            <div class="proof-line">Counterexample: Model generated via Z3 solver</div>
+            <div class="proof-line">Counterexample: Z3 verified boundary violation</div>
         `;
         if (data.status === "SYNTHESIZED") {
-            proofHtml += `<div class="proof-line verified">CEGIS Rewrite: AST patched & verified in memory</div>`;
+            proofHtml += `<div class="proof-line verified"><strong>CEGIS AUTO-PATCH:</strong> AST synthesized in ${data.latency_us.toFixed(1)}µs (Zero Token Retry)</div>`;
         } else {
             proofHtml += `<div class="proof-line" style="color: #FF1E44;"><strong>ANNIHILATED:</strong> Unrecoverable state. Shadow purged.</div>`;
         }
@@ -361,11 +386,43 @@ function updateSystemStatus(online) {
 
 /* Setup UI Handlers */
 function setupControls() {
-    // Theorem Selector Tabs
+    // Theorem Selector Tabs (Clicking active tab toggles back to 3D manifold)
     document.querySelectorAll('.btn-theorem').forEach(btn => {
         btn.addEventListener('click', () => {
-            switchTheatreView(btn.dataset.view);
+            if (btn.dataset.view === currentActiveView) {
+                switchTheatreView('manifold');
+            } else {
+                switchTheatreView(btn.dataset.view);
+            }
         });
+    });
+
+    // Stance Buttons (Autobahn vs Defensive)
+    document.querySelectorAll('.btn-stance').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setRuntimeStance(btn.dataset.stance);
+        });
+    });
+
+    // Operational Mode Buttons (Pitch Harness vs Passive Hypervisor Proxy)
+    document.querySelectorAll('.btn-oper').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setOperationalMode(btn.dataset.oper);
+        });
+    });
+
+    // Copy CLI Runner Command Hook
+    document.getElementById('btn-copy-hook')?.addEventListener('click', () => {
+        const cmd = "python scripts/external_agent_runner.py --mode patch";
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(cmd).catch(() => {});
+        }
+        const textEl = document.getElementById('copy-hook-text');
+        if (textEl) {
+            const orig = textEl.textContent;
+            textEl.textContent = "COPIED CLI HOOK!";
+            setTimeout(() => { textEl.textContent = orig; }, 1600);
+        }
     });
 
     // Dismiss HUD overlay button
@@ -446,6 +503,79 @@ function setupControls() {
     document.getElementById('btn-sim-swarm')?.addEventListener('click', () => {
         triggerSwarmBurst();
     });
+}
+
+function setRuntimeStance(stance) {
+    currentRuntimeStance = stance;
+
+    // 1. Update buttons active state
+    document.querySelectorAll('.btn-stance').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.stance === stance);
+    });
+
+    // 2. Elements to adapt
+    const brandBadge = document.getElementById('brand-mode-badge');
+    const speedupCard = document.getElementById('autobahn-speedup-card');
+    const zone3Tag = document.getElementById('zone-3-tag');
+    const kappaLabel = document.getElementById('metric-kappa-label');
+    const latencyLabel = document.getElementById('metric-latency-label');
+
+    const labelSafe = document.getElementById('label-sim-safe');
+    const iconParadox = document.getElementById('icon-sim-paradox');
+    const labelParadox = document.getElementById('label-sim-paradox');
+    const labelSockets = document.getElementById('label-sim-sockets');
+    const labelSwarm = document.getElementById('label-sim-swarm');
+
+    if (stance === 'autobahn') {
+        if (brandBadge) brandBadge.textContent = 'AUTOBAHN v3.2';
+        if (speedupCard) speedupCard.style.display = 'block';
+        if (zone3Tag) zone3Tag.textContent = 'CEGIS RUNTIME';
+        if (kappaLabel) kappaLabel.textContent = 'RICCI CURVATURE (κ)';
+        if (latencyLabel) latencyLabel.textContent = 'CEGIS SYNTHESIS LATENCY';
+
+        if (labelSafe) labelSafe.textContent = 'Safe Spec (κ=0)';
+        if (iconParadox) iconParadox.textContent = '🔧';
+        if (labelParadox) labelParadox.textContent = 'CEGIS Auto-Patch (44µs)';
+        if (labelSockets) labelSockets.textContent = 'Barrier Annihilate';
+        if (labelSwarm) labelSwarm.textContent = 'Swarm Compiler Burst';
+
+        logToFeed('KERNEL', 'Runtime Stance: ACAUSAL AUTOBAHN (Performance & CEGIS Synthesis Active)', 'safe');
+    } else {
+        if (brandBadge) brandBadge.textContent = 'VPSN CONTINUUM v3.2';
+        if (speedupCard) speedupCard.style.display = 'none';
+        if (zone3Tag) zone3Tag.textContent = 'Z3 SMT PROVER';
+        if (kappaLabel) kappaLabel.textContent = 'PARADOX INDEX (κ)';
+        if (latencyLabel) latencyLabel.textContent = 'HYPERVISOR INTERCEPT LATENCY';
+
+        if (labelSafe) labelSafe.textContent = 'Safe State (κ=0)';
+        if (iconParadox) iconParadox.textContent = '🚨';
+        if (labelParadox) labelParadox.textContent = 'Memory Paradox (κ=1.0)';
+        if (labelSockets) labelSockets.textContent = 'Socket Leak';
+        if (labelSwarm) labelSwarm.textContent = 'Swarm Burst';
+
+        logToFeed('KERNEL', 'Runtime Stance: DEFENSIVE INTEGRITY (Fail-Closed State Collapse Active)', 'safe');
+    }
+}
+
+function setOperationalMode(mode) {
+    currentOperationalMode = mode;
+
+    document.querySelectorAll('.btn-oper').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.oper === mode);
+    });
+
+    const simGroup = document.getElementById('sim-btn-group');
+    const proxyDock = document.getElementById('passive-proxy-dock');
+
+    if (mode === 'hypervisor') {
+        if (simGroup) simGroup.style.display = 'none';
+        if (proxyDock) proxyDock.style.display = 'flex';
+        logToFeed('HYPERVISOR', 'Passive Intercept Mode: Transparent Reverse Proxy listening on :8000 for external agents', 'safe');
+    } else {
+        if (simGroup) simGroup.style.display = 'flex';
+        if (proxyDock) proxyDock.style.display = 'none';
+        logToFeed('DEMO-DECK', 'Guided Pitch Harness: Interactive simulation buttons active', 'normal');
+    }
 }
 
 function applyTimelinePhase(val) {

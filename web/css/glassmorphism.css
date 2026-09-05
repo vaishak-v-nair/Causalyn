@@ -979,3 +979,330 @@ body {
   margin-left: 8px;
   font-style: normal;
 }
+
+/* ==========================================================================
+   Acausal Autobahn Stance & Transparent Hypervisor Proxy Styles
+   ========================================================================== */
+
+/* Top Deck Mode Selectors (Stance & Operational Modes) */
+.deck-mode-selectors {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Stance Switcher: Autobahn (Compiler) vs Defensive (Integrity) */
+.stance-switch-group {
+  display: flex;
+  align-items: center;
+  background: rgba(3, 7, 18, 0.85);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.btn-stance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-secondary);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-stance:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-stance.active {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.2), rgba(99, 102, 241, 0.25));
+  border: 1px solid rgba(0, 243, 255, 0.5);
+  color: #00F3FF;
+  box-shadow: 0 0 14px rgba(0, 243, 255, 0.3);
+}
+
+.btn-stance[data-stance="defensive"].active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 78, 59, 0.35));
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #10B981;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.3);
+}
+
+.stance-icon {
+  font-size: 13px;
+}
+
+.stance-label {
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.stance-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  opacity: 0.7;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Operational Mode Group: Guided Pitch vs Passive Proxy */
+.oper-mode-group {
+  display: flex;
+  align-items: center;
+  background: rgba(3, 7, 18, 0.7);
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+}
+
+.btn-oper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.btn-oper:hover {
+  color: var(--text-primary);
+}
+
+.btn-oper.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.radar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00F3FF;
+  box-shadow: 0 0 8px #00F3FF;
+  animation: pulse-dot 1.2s infinite;
+}
+
+/* Passive Transparent Proxy Dock */
+.passive-proxy-dock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(8, 14, 28, 0.92);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  border-radius: 10px;
+  padding: 5px 12px;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.15);
+  animation: hudFadeIn 0.25s ease-out;
+}
+
+.proxy-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 243, 255, 0.12);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+.proxy-pulse-beacon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00F3FF;
+  box-shadow: 0 0 10px #00F3FF;
+  animation: pulse-dot 1s infinite alternate;
+}
+
+.proxy-pill-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #00F3FF;
+  letter-spacing: 0.5px;
+}
+
+.agent-channels {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agent-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  color: var(--text-secondary);
+}
+
+.agent-chip.active {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #E2E8F0;
+}
+
+.channel-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 6px #10B981;
+}
+
+.btn-copy-hook {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px dashed rgba(0, 243, 255, 0.4);
+  color: var(--cyan-accent);
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  transition: all 0.15s;
+}
+
+.btn-copy-hook:hover {
+  background: rgba(0, 243, 255, 0.15);
+  border-style: solid;
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+}
+
+/* Zone 3 Autobahn Hero Speedup Card */
+.autobahn-speedup-card {
+  background: linear-gradient(145deg, rgba(8, 14, 30, 0.95), rgba(15, 23, 42, 0.85)) !important;
+  border: 1px solid rgba(0, 243, 255, 0.4) !important;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.autobahn-speedup-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00F3FF, #6366F1, #10B981);
+}
+
+.speedup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.speedup-badge {
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #00F3FF;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.speedup-ratio {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(0, 243, 255, 0.15);
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+.speedup-metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: rgba(3, 7, 18, 0.85);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.speedup-col {
+  text-align: center;
+}
+
+.speedup-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.speedup-val.highlight {
+  color: #00F3FF;
+  text-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+}
+
+.speedup-val.dim {
+  color: var(--text-muted);
+  opacity: 0.65;
+  text-decoration: line-through rgba(255, 30, 68, 0.6);
+}
+
+.speedup-sublabel {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.speedup-vs {
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.token-savings-footer {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: #10B981;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: center;
+}
+
+.token-bullet {
+  font-size: 7px;
+  color: #10B981;
+  animation: pulse-dot 1.2s infinite;
+}
+
