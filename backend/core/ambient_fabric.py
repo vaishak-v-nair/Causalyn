@@ -1,6 +1,8 @@
 import os
 import shutil
 import tempfile
+import uuid
+import time
 from pathlib import Path
 from typing import Generator
 from contextlib import contextmanager
@@ -42,6 +44,7 @@ class AmbientFabric:
     def atomic_commit(self, shadow_dir: Path, target_file: str) -> None:
         """
         Commits verified state (S ∈ N_semantic) to physical host disk.
+        Thread-safe across high-concurrency swarm mutations with Windows retry safety.
         """
         source_path = shadow_dir / Path(target_file).name
         target_path = self.workspace_root / target_file
@@ -52,8 +55,26 @@ class AmbientFabric:
         # Ensure parent directories exist
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Atomic replacement via rename over same filesystem partition
-        temp_dest = target_path.with_name(f"{target_path.name}.tmp_causalyn")
+        # Unique temp destination per atomic commit to avoid collision under concurrent writes
+        unique_id = uuid.uuid4().hex[:12]
+        temp_dest = target_path.with_name(f"{target_path.name}.tmp_{unique_id}")
         shutil.copy2(source_path, temp_dest)
-        os.replace(temp_dest, target_path)
+
+        # Retry loop for Windows filesystem locks
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                os.replace(temp_dest, target_path)
+                break
+            except PermissionError:
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(0.01 * (2 ** attempt))
+            finally:
+                if temp_dest.exists():
+                    try:
+                        temp_dest.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+
 

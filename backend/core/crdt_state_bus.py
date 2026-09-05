@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 import time
+import threading
 
 class SwarmOperation:
     def __init__(self, agent_id: str, clock: int, target_file: str, patch: str):
@@ -11,21 +12,26 @@ class SwarmOperation:
 
 class HyperDimensionalStateBus:
     def __init__(self):
+        self._lock = threading.Lock()
         # Lamport vector clock for each connected agent ID
         self.vector_clocks: Dict[str, int] = {}
         # Ordered operation logs
         self.log: List[SwarmOperation] = []
 
     def register_agent(self, agent_id: str):
-        if agent_id not in self.vector_clocks:
-            self.vector_clocks[agent_id] = 0
+        with self._lock:
+            if agent_id not in self.vector_clocks:
+                self.vector_clocks[agent_id] = 0
 
     def propose_mutation(self, agent_id: str, target_file: str, patch: str) -> SwarmOperation:
-        # Increment sequence clock
-        self.vector_clocks[agent_id] += 1
-        op = SwarmOperation(agent_id, self.vector_clocks[agent_id], target_file, patch)
-        self.log.append(op)
-        return op
+        with self._lock:
+            if agent_id not in self.vector_clocks:
+                self.vector_clocks[agent_id] = 0
+            # Increment sequence clock
+            self.vector_clocks[agent_id] += 1
+            op = SwarmOperation(agent_id, self.vector_clocks[agent_id], target_file, patch)
+            self.log.append(op)
+            return op
 
     def reconcile_swarms(self, operations: List[SwarmOperation]) -> List[SwarmOperation]:
         """

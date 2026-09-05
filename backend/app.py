@@ -8,6 +8,7 @@ import asyncio
 import json
 import time
 import os
+import math
 
 from core.ambient_fabric import AmbientFabric
 from core.cegar_synthesizer import AcausalSynthesizer
@@ -115,6 +116,10 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
             call.state_variables,
             invariants
         )
+        if math.isinf(kappa) or math.isnan(kappa):
+            kappa = 999.0
+        else:
+            kappa = float(kappa)
         
         duration_us = (time.perf_counter_ns() - t_start) / 1000.0
 
