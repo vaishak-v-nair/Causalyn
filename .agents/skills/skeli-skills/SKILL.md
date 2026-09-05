@@ -247,10 +247,27 @@ Before claiming any UI task complete, the agent must run through these 5 Self-Re
 
 ---
 
-## 7. References
+## 7. The Multi-Page Architectural Decoupling Rule (Selective Page Splitting)
+
+When addressing UI congestion, clutter, or information density:
+- **THE CARDINAL HYPERVISOR INVARIANT:** Never fragment the live execution feedback loop across different pages. An engineer testing an agent prompt MUST observe the speculative `<thinking>` trace, the 3D manifold deformation/repair, the SMT solver proof trace, and the immutable ledger commit on ONE unified screen without page hops.
+- **WHAT IS PERMITTED ON SEPARATE PAGES:**
+  1. **Academic Theory & Formal Proofs (`/proofs`):** Heavy mathematical derivations, LaTeX equations, Axioms I–IV, embedded 3B1B/Manim video lectures, and whitepaper download links. Moving these off the live cockpit allows the 3D Symplectic Manifold to breathe at full resolution without occlusion.
+  2. **Policy Studio & Deep Governance (`/invariants`):** Full multi-column policy registries, custom rule authoring suites with live SMT compilation, and dry-run boundary testers. On the main cockpit, provide a compact, clean quick-toggle monitor with a direct link to the studio.
+- **GLOBAL NAVIGATION INTEGRITY:**
+  - Every decoupled page must share the unified obsidian/cyan `.top-deck` with `.top-nav-links` (`⚡ Cockpit`, `🛡️ Policy Studio`, `📐 Theory & Proofs`, `📖 Docs ↗`).
+  - Active page states must glow cyan with subtle box-shadows (`box-shadow: 0 0 14px rgba(0, 243, 255, 0.3)`).
+  - Unused controls on secondary pages (e.g. prompt bars, 3D camera switches) must not be rendered, ensuring dedicated pages are focused and responsive.
+
+---
+
+## 8. References
 - Control Plane CSS: `web/css/glassmorphism.css`
-- Control Plane Markup: `web/index.html`
+- Live Execution Cockpit: `web/index.html`
+- Invariant Policy Studio: `web/invariants.html`
+- Mathematical Theory & Proofs: `web/proofs.html`
 - Cockpit JS Logic: `web/js/cockpit.js`
 - Invariant Registry: `backend/core/invariant_registry.py`
 - Reasoning Engine: `backend/core/agent_reasoning.py`
 - External CLI Wrap: `scripts/causalyn_wrap.py`
+

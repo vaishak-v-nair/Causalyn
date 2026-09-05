@@ -24,85 +24,58 @@
                 <span class="brand-badge" id="brand-mode-badge">AUTOBAHN v3.2</span>
             </div>
 
-            <!-- Dual Stance & Operational Mode Switches -->
+            <!-- Global Navigation Links -->
+            <nav class="top-nav-links">
+                <a href="/" class="nav-item active">
+                    <span class="nav-icon">⚡</span> Cockpit
+                </a>
+                <a href="/invariants" class="nav-item">
+                    <span class="nav-icon">🛡️</span> Policy Studio
+                </a>
+                <a href="/proofs" class="nav-item">
+                    <span class="nav-icon">📐</span> Theory &amp; Proofs
+                </a>
+                <a href="https://github.com/vaishak-v-nair/Causalyn" target="_blank" class="nav-item">
+                    <span class="nav-icon">📖</span> Docs ↗
+                </a>
+            </nav>
+
+            <!-- Top Deck Right: Mode Switchers, Audio & Kernel Status -->
             <div class="deck-mode-selectors">
                 <!-- Stance Switch: Compiler Autobahn vs Defensive Continuum -->
                 <div class="stance-switch-group">
-                    <button class="btn-stance active" id="btn-stance-autobahn" data-stance="autobahn" title="Acausal Compiler Mode: Emphasize sub-millisecond CEGIS AST synthesis, 34,200x speedup, Ricci flow relaxation">
+                    <button class="btn-stance active" id="btn-stance-autobahn" data-stance="autobahn" title="Acausal Compiler Mode: Sub-millisecond CEGIS AST synthesis, 34,200x speedup">
                         <span class="stance-icon">⚡</span>
                         <span class="stance-label">AUTOBAHN</span>
-                        <span class="stance-sub">COMPILER</span>
                     </button>
-                    <button class="btn-stance" id="btn-stance-defensive" data-stance="defensive" title="Defensive Integrity Mode: Emphasize fail-closed state collapse, zero disk leak, VPSN axioms">
+                    <button class="btn-stance" id="btn-stance-defensive" data-stance="defensive" title="Defensive Integrity Mode: Fail-closed state collapse, zero disk leak">
                         <span class="stance-icon">🛡️</span>
                         <span class="stance-label">DEFENSIVE</span>
-                        <span class="stance-sub">INTEGRITY</span>
                     </button>
                 </div>
 
                 <!-- Operational Mode Switch: Guided Pitch Harness vs Passive Transparent Hypervisor -->
                 <div class="oper-mode-group">
-                    <button class="btn-oper active" id="btn-oper-harness" data-oper="harness" title="Guided Pitch Harness: Interactive simulation buttons">
-                        <span>🧪</span> DEMO HARNESS
+                    <button class="btn-oper active" id="btn-oper-harness" data-oper="harness" title="Guided Pitch Harness: Interactive simulation presets">
+                        <span>🧪</span> DEMO
                     </button>
-                    <button class="btn-oper" id="btn-oper-hypervisor" data-oper="hypervisor" title="Passive Hypervisor Mode: Transparent reverse proxy listening for external CLI agent RPCs">
-                        <span class="radar-dot"></span> PASSIVE PROXY
-                    </button>
-                </div>
-            </div>
-
-            <!-- Center Deck: Guided Pitch Buttons OR Passive Hypervisor Dock -->
-            <div class="center-deck-controls">
-                <!-- 1. Guided Pitch Simulator Buttons -->
-                <div class="sim-btn-group" id="sim-btn-group">
-                    <button class="btn-sim" id="btn-sim-safe" title="Inject compliant spec (threads=8, memory=512) -> κ=0">
-                        <span>⚡</span> <span id="label-sim-safe">Safe Spec (κ=0)</span>
-                    </button>
-                    <button class="btn-sim danger-btn" id="btn-sim-paradox" title="Propose candidate mutation (threads=32) -> CEGIS AST Auto-Patch in 44µs">
-                        <span id="icon-sim-paradox">🔧</span> <span id="label-sim-paradox">CEGIS Auto-Patch (44µs)</span>
-                    </button>
-                    <button class="btn-sim danger-btn" id="btn-sim-sockets" title="Inject fatal exhaustion (sockets=256) -> Fail-Closed Annihilation">
-                        <span>🛑</span> <span id="label-sim-sockets">Barrier Annihilate</span>
-                    </button>
-                    <button class="btn-sim" id="btn-sim-swarm" title="Trigger concurrent multi-agent Lamport reconciliation">
-                        <span>🚀</span> <span id="label-sim-swarm">Swarm Compiler Burst</span>
-                    </button>
-                </div>
-
-                <!-- 2. Passive Transparent Proxy Dock (for External CLI Agents) -->
-                <div class="passive-proxy-dock" id="passive-proxy-dock" style="display: none;">
-                    <div class="proxy-status-pill">
-                        <span class="proxy-pulse-beacon"></span>
-                        <span class="proxy-pill-title">PROXY LISTENING :8000</span>
-                    </div>
-                    <div class="agent-channels">
-                        <div class="agent-chip active" title="Listening on Claude Code tool hooks">
-                            <span class="channel-dot"></span> Claude Code
-                        </div>
-                        <div class="agent-chip active" title="Listening on Cursor IDE agent sockets">
-                            <span class="channel-dot"></span> Cursor IDE
-                        </div>
-                        <div class="agent-chip active" title="Listening on external CLI runners">
-                            <span class="channel-dot"></span> Terminal CLI
-                        </div>
-                    </div>
-                    <button class="btn-copy-hook" id="btn-copy-hook" title="Copy CLI Proxy Runner Command">
-                        <span>📋</span> <span id="copy-hook-text">python scripts/external_agent_runner.py</span>
+                    <button class="btn-oper" id="btn-oper-hypervisor" data-oper="hypervisor" title="Passive Hypervisor Mode: Transparent reverse proxy for CLI agents">
+                        <span class="radar-dot"></span> PROXY
                     </button>
                 </div>
 
                 <!-- Synchronized Procedural Acoustic Synthesizer -->
                 <div class="audio-controller">
                     <button class="audio-btn" id="btn-mute" title="Toggle Procedural Acoustic Feedback">🔊</button>
-                    <canvas id="audio-spectrum-canvas" width="50" height="22" title="Real-time Web Audio Synthesizer Spectrum"></canvas>
+                    <canvas id="audio-spectrum-canvas" width="40" height="20" title="Real-time Web Audio Synthesizer Spectrum"></canvas>
                 </div>
-            </div>
 
-            <!-- Kernel Status Indicator -->
-            <div class="system-status">
-                <div class="status-badge">
-                    <div class="status-dot" id="status-dot"></div>
-                    <span id="status-text">CONTINUUM ACTIVE</span>
+                <!-- Kernel Status Indicator -->
+                <div class="system-status">
+                    <div class="status-badge">
+                        <div class="status-dot" id="status-dot"></div>
+                        <span id="status-text">ACTIVE</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -130,18 +103,21 @@
             </div>
             <div class="playground-footer-row">
                 <div class="preset-chips-group">
-                    <span class="chips-label">PRESETS:</span>
+                    <span class="chips-label">SCENARIOS:</span>
+                    <button class="preset-chip safe" id="btn-sim-safe" data-prompt="Refactor auth_handler.py with threads=8 and memory=512MB" title="Inject compliant spec (threads=8, memory=512) -> κ=0">
+                        <span class="chip-dot green"></span> <span id="label-sim-safe">Safe Spec (κ=0)</span>
+                    </button>
+                    <button class="preset-chip warning" id="btn-sim-paradox" data-prompt="Scale backend workers to threads=64 and memory=2048MB in pool.py" title="Propose candidate mutation (threads=32) -> CEGIS AST Auto-Patch in 44µs">
+                        <span class="chip-dot cyan"></span> <span id="label-sim-paradox">CEGIS Auto-Patch (44µs)</span>
+                    </button>
+                    <button class="preset-chip danger" id="btn-sim-sockets" data-prompt="Open sockets=256 and bind port 8000 in gateway.py" title="Inject fatal exhaustion (sockets=256) -> Fail-Closed Annihilation">
+                        <span class="chip-dot red"></span> <span id="label-sim-sockets">Barrier Annihilate</span>
+                    </button>
                     <button class="preset-chip danger" data-prompt="Refactor config/db.py and drop table 'users'" title="Test fail-closed annihilation on DB drop">
-                        <span class="chip-dot red"></span> DROP TABLE (ANNIHILATE)
+                        <span class="chip-dot red"></span> DROP TABLE
                     </button>
-                    <button class="preset-chip warning" data-prompt="Scale backend workers to threads=64 and memory=2048MB in pool.py" title="Test sub-millisecond CEGIS AST auto-patch">
-                        <span class="chip-dot cyan"></span> CONCURRENCY 64 (CEGIS)
-                    </button>
-                    <button class="preset-chip danger" data-prompt="Open sockets=256 and bind port 8000 in gateway.py" title="Test socket exhaustion prevention">
-                        <span class="chip-dot red"></span> SOCKET EXHAUSTION
-                    </button>
-                    <button class="preset-chip safe" data-prompt="Refactor auth_handler.py with threads=8 and memory=512MB" title="Test clean SMT verified equilibrium commit">
-                        <span class="chip-dot green"></span> SAFE REFACTOR
+                    <button class="preset-chip" id="btn-sim-swarm" data-prompt="Rebalance worker nodes across 8 concurrent agent streams" title="Trigger concurrent multi-agent Lamport reconciliation">
+                        <span class="chip-dot cyan"></span> <span id="label-sim-swarm">Swarm Burst</span>
                     </button>
                 </div>
                 <div class="cli-hook-pill" id="cli-hook-pill" title="Run external agent CLI wrapped by Causalyn hypervisor">
@@ -149,6 +125,30 @@
                     <span class="cli-pill-cmd">causalyn wrap "claude --auto"</span>
                     <button class="btn-copy-cli" id="btn-copy-cli" title="Copy CLI wrap command">COPY</button>
                 </div>
+            </div>
+
+            <!-- Passive Transparent Proxy Dock (for External CLI Agents when in Proxy mode) -->
+            <div class="passive-proxy-dock" id="passive-proxy-dock" style="display: none; padding: 6px 12px; margin-top: 6px; background: rgba(15, 23, 42, 0.95); border-radius: 8px; border: 1px solid var(--panel-border); align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="proxy-status-pill">
+                        <span class="proxy-pulse-beacon"></span>
+                        <span class="proxy-pill-title">PROXY LISTENING :8000</span>
+                    </div>
+                    <div class="agent-channels" style="display: flex; gap: 6px;">
+                        <div class="agent-chip active" title="Listening on Claude Code tool hooks">
+                            <span class="channel-dot"></span> Claude Code
+                        </div>
+                        <div class="agent-chip active" title="Listening on Cursor IDE agent sockets">
+                            <span class="channel-dot"></span> Cursor IDE
+                        </div>
+                        <div class="agent-chip active" title="Listening on external CLI runners">
+                            <span class="channel-dot"></span> Terminal CLI
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-copy-hook" id="btn-copy-hook" title="Copy CLI Proxy Runner Command">
+                    <span>📋</span> <span id="copy-hook-text">python scripts/external_agent_runner.py</span>
+                </button>
             </div>
         </div>
 
@@ -196,75 +196,35 @@
             <!-- Zone 2: Mathematical Continuum & Formal Proof Theatre (Center) -->
             <section class="panel center-viewport" id="zone-2">
                 
-                <!-- Master Stage Tabs: Select between 3D Manifold & Core Mathematical Theorems -->
+                <!-- Master Stage Header: 3D Camera Controls & Link to Proofs -->
                 <div class="stage-tab-bar">
-                    <div class="theorem-tab-group">
-                        <button class="btn-theorem active" data-view="manifold">3D SYMPLECTIC MANIFOLD</button>
-                        <button class="btn-theorem" data-view="paradox">PARADOX INDEX (κ)</button>
-                        <button class="btn-theorem" data-view="operator">VAISHAK OPERATOR (Υ)</button>
-                        <button class="btn-theorem" data-view="nullification">SEMANTIC NULLIFICATION</button>
-                        <button class="btn-theorem" data-view="compiler">ACAUSAL RICCI FLOW</button>
+                    <div class="stage-title-wrap" style="display: flex; align-items: center; gap: 8px;">
+                        <span class="status-dot" style="width: 6px; height: 6px;"></span>
+                        <span style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 11px; letter-spacing: 0.8px; color: var(--cyan-accent);">
+                            3D SYMPLECTIC MANIFOLD
+                        </span>
                     </div>
                     <div class="camera-preset-group" id="camera-controls">
                         <button class="btn-cam active" data-cam="perspective">45° ISOMETRIC</button>
                         <button class="btn-cam" data-cam="top">TOPOLOGICAL</button>
                         <button class="btn-cam" data-cam="orbit">KINETIC ORBIT</button>
                     </div>
+                    <a href="/proofs" class="btn-goto-proofs" title="Explore Formal Mathematical Proofs & 3B1B Manim Videos">
+                        <span>📐</span> THEORY &amp; PROOFS ↗
+                    </a>
                 </div>
 
-                <!-- Main Stage Canvas: Displays 3D Continuum with Floating Ambient Math HUD -->
+                <!-- Main Stage Canvas: Displays 3D Continuum -->
                 <div class="stage-main-canvas" id="stage-main-canvas">
-                    
                     <!-- HUD Formula Indicator -->
                     <div class="stage-hud-overlay">
                         <div class="formula-chip" id="stage-formula-text">
                             z = sin(u)cos(v) + κ · e^{-(u² + v²)}
                         </div>
                         <div class="formula-chip" style="color: var(--cyan-accent); font-weight: 700;">
-                            3B1B/MANIM CONTINUUM SUITE
+                            VPSN SYMPLECTIC CONTINUUM
                         </div>
                     </div>
-
-                    <!-- Ambient Frosted Glass HUD Overlay for Mathematical Theorems -->
-                    <div class="theorem-hud-overlay" id="theorem-hud-overlay">
-                        <div class="hud-card-header">
-                            <div class="hud-title-wrap">
-                                <span class="hud-status-pulse"></span>
-                                <span class="hud-theorem-badge" id="hud-theorem-title">PARADOX INDEX (κ)</span>
-                                <span class="hud-axiom-tag" id="hud-axiom-tag">VPSN AXIOM I</span>
-                            </div>
-                            <button class="btn-hud-close" id="btn-hud-close" title="Dismiss HUD and return to 3D Manifold">
-                                <span>✕</span> RETURN TO MANIFOLD
-                            </button>
-                        </div>
-
-                        <!-- Mathematical LaTeX Display -->
-                        <div class="hud-formula-display" id="hud-formula-display">
-                            κ = Σ ω_v · P_v(S_c, S_l)
-                        </div>
-
-                        <!-- Formal Exposition & Physical Invariant -->
-                        <div class="hud-description-box">
-                            <div class="hud-desc-heading" id="hud-desc-heading">Acausal Divergence Penalty</div>
-                            <div class="hud-desc-body" id="hud-desc-body">
-                                Measures instantaneous geometric deviation from the verified invariant manifold ℳ_ℐ. Non-zero values trigger fail-closed state nullification.
-                            </div>
-                        </div>
-
-                        <!-- Inset Manim Video Theatre -->
-                        <div class="hud-theatre-box">
-                            <div class="hud-theatre-bar">
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--cyan-accent); font-weight: 700;">
-                                    ▶ 3B1B/MANIM RIGOROUS PROOF THEATRE
-                                </span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);" id="hud-video-badge">
-                                    480p15 FORMAL PROOF
-                                </span>
-                            </div>
-                            <video id="manim-theatre-player" loop muted playsinline></video>
-                        </div>
-                    </div>
-
                 </div>
 
                 <!-- LTX-2 Precision Audiovisual Timeline Scrubber -->
@@ -347,26 +307,13 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Invariant Control Plane -->
+                <!-- Active Invariant Gating (Quick Toggles) -->
                 <div class="metric-card invariant-card-wrap">
                     <div class="invariant-card-header">
-                        <span class="metric-label" style="margin: 0;">DYNAMIC INVARIANT CONTROL</span>
-                        <button class="btn-add-inv-toggle" id="btn-toggle-add-inv" title="Author custom invariant">+ NEW RULE</button>
-                    </div>
-
-                    <!-- Collapsible Add Invariant Form -->
-                    <div class="add-inv-drawer" id="add-inv-drawer" style="display: none;">
-                        <div class="inv-form-row">
-                            <input type="text" id="inv-input-id" class="inv-form-field" placeholder="Rule Name (e.g. MAX_CPU)">
-                            <select id="inv-input-type" class="inv-form-select">
-                                <option value="numerical">Z3 Numerical</option>
-                                <option value="semantic">Semantic</option>
-                            </select>
-                        </div>
-                        <div class="inv-form-row">
-                            <input type="text" id="inv-input-expr" class="inv-form-field" placeholder="Expr / Keyword (e.g. cpu <= 8)">
-                            <button class="btn-inv-create" id="btn-submit-inv">ADD</button>
-                        </div>
+                        <span class="metric-label" style="margin: 0;">ACTIVE INVARIANT GATING</span>
+                        <a href="/invariants" class="btn-goto-policy" title="Open Policy Studio to author custom rules">
+                            <span>🛡️</span> POLICY STUDIO ↗
+                        </a>
                     </div>
 
                     <!-- Dynamic Invariant Toggle List -->

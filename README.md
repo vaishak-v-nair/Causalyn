@@ -113,10 +113,14 @@ Causalyn features a high-density, 60 FPS WebGL 3D cockpit providing end-to-end v
 ```
 
 ### Layout Architecture:
-- **Top Command Deck & Acausal Playground**: Prompt multi-model reasoning engines (`claude-3-5-sonnet`, `colibri-moe`, `acausal-cegis-worker`), launch shadow executions, and copy CLI process hooks.
+- **Top Command Deck & Acausal Playground**: Global navigation (`Cockpit`, `Policy Studio`, `Theory & Proofs`, `Docs`), stance switcher (`AUTOBAHN` / `DEFENSIVE`), multi-model reasoning prompts (`claude-3-5-sonnet`, `colibri-moe`, `acausal-cegis-worker`), interactive scenario presets (`SAFE REFACTOR`, `CONCURRENCY 64`, `DROP TABLE`, `SOCKET EXHAUSTION`), and CLI process hooks.
 - **Zone 1 (Left - 340px)**: Real-time thought token `<thinking>` streaming, vector clock tracking, and inline syntax-highlighted micro-diffs (`.diff-add`, `.diff-del`, `.diff-commit`).
-- **Zone 2 (Center - Viewport)**: Live 3D symplectic wireframe manifold deforming dynamically under paradox curvature ($\kappa$), LTX-2 precision execution scrubber, and ambient 3B1B/Manim mathematical HUD overlays.
-- **Zone 3 (Right - 350px)**: Ground Truth Ledger featuring the $34,200\times$ compiler speedup hero card, Z3 SMT prover trace window, dynamic invariant toggle switches (`ON/OFF`), and immutable SHA-256 commit hashes.
+- **Zone 2 (Center - Viewport)**: Live 3D symplectic wireframe manifold deforming dynamically under paradox curvature ($\kappa$), LTX-2 precision execution scrubber, camera presets (Isometric, Topological, Orbit), and direct navigation to mathematical theory.
+- **Zone 3 (Right - 350px)**: Ground Truth Ledger featuring the $34,200\times$ compiler speedup hero card, Z3 SMT prover trace window, quick invariant toggle switches (`ON/OFF`), and immutable SHA-256 commit hashes.
+
+### Decoupled Subsystem Pages:
+- **Policy Studio & Governance (`/invariants`)**: Dedicated policy engineering panel with live SMT compilation, rule authoring, full multi-column invariant management, and a dry-run SMT constraint validator.
+- **Mathematical Theory & Proofs (`/proofs`)**: Formal academic suite featuring LaTeX derivations of VPSN Axioms I–IV, embedded 3B1B/Manim video players, and direct whitepaper PDF access.
 
 ---
 
@@ -141,7 +145,10 @@ python backend/app.py
 ```
 *The hypervisor starts on `http://127.0.0.1:8000` with WebSocket continuum telemetry at `ws://127.0.0.1:8000/ws/continuum`.*
 
-Open `http://127.0.0.1:8000/` in your browser to access the live 3D Cockpit.
+Navigate your browser to:
+- `http://127.0.0.1:8000/` — **Live Execution Cockpit & Prompt Playground**
+- `http://127.0.0.1:8000/invariants` — **Invariant Policy Studio & SMT Tester**
+- `http://127.0.0.1:8000/proofs` — **VPSN Mathematical Theory & 3B1B Manim Proofs**
 
 ---
 
@@ -186,7 +193,9 @@ causalyn/
 │       ├── invariant_registry.py      # Thread-safe numerical and semantic invariant registry
 │       └── manim_engine.py            # 3B1B/Manim programmatic proof visualizer
 ├── web/
-│   ├── index.html                     # 3-Zone Acausal Cockpit & Playground HTML5 markup
+│   ├── index.html                     # 3-Zone Live Acausal Cockpit & Prompt Playground
+│   ├── invariants.html                # Invariant Policy Studio & Governance Suite
+│   ├── proofs.html                    # Mathematical Theory, VPSN Axioms & 3B1B Manim Suite
 │   ├── css/
 │   │   └── glassmorphism.css          # Cyber-industrial high-contrast design system
 │   ├── js/

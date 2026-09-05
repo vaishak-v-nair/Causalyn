@@ -47,12 +47,15 @@ class PromptDispatchRequest(BaseModel):
     target_file: Optional[str] = None
 
 class InvariantCreateRequest(BaseModel):
+    id: Optional[str] = None
     name: str
-    kind: str = "numerical"
+    kind: Optional[str] = "numerical"
+    type: Optional[str] = None
     threshold: Optional[int] = None
     target_var: Optional[str] = "threads"
     operator: Optional[str] = "<="
     pattern: Optional[str] = None
+    expression: Optional[str] = None
     description: Optional[str] = None
 
 class TelemetryBroadcaster:
@@ -215,6 +218,7 @@ async def dispatch_agent_prompt(req: PromptDispatchRequest, bg_tasks: Background
         await telemetry.emit_telemetry({
             "type": "agent_thought_chunk",
             "token": token,
+            "chunk": token,
             "model": req.model,
             "agent_id": f"{req.model.upper()}-PLAYGROUND",
             "timestamp": time.time()
@@ -348,6 +352,27 @@ if web_dir.exists():
         if index_file.exists():
             return FileResponse(index_file)
         return {"message": "Web dashboard not found"}
+
+    @app.get("/proofs")
+    async def serve_proofs():
+        proofs_file = web_dir / "proofs.html"
+        if proofs_file.exists():
+            return FileResponse(proofs_file)
+        return FileResponse(web_dir / "index.html")
+
+    @app.get("/invariants")
+    async def serve_invariants():
+        invariants_file = web_dir / "invariants.html"
+        if invariants_file.exists():
+            return FileResponse(invariants_file)
+        return FileResponse(web_dir / "index.html")
+
+    @app.get("/docs/The_Vaishak_Principle_Illustrated.pdf")
+    async def serve_whitepaper():
+        pdf_file = Path(__file__).resolve().parent.parent / "docs" / "The_Vaishak_Principle_Illustrated.pdf"
+        if pdf_file.exists():
+            return FileResponse(pdf_file, media_type="application/pdf")
+        return {"error": "Whitepaper not found"}
 
 if __name__ == "__main__":
     import uvicorn

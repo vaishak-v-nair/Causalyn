@@ -113,14 +113,26 @@ class InvariantRegistry:
                 "enabled": True,
                 "builtin": False
             }
-            if record["kind"] == "numerical":
-                record["target_var"] = inv.get("target_var", "threads")
-                record["operator"] = inv.get("operator", "<=")
-                record["threshold"] = int(inv.get("threshold", 16))
-            elif record["kind"] == "semantic":
-                record["pattern"] = inv.get("pattern", r"")
-            elif record["kind"] == "path":
+            kind = inv.get("kind") or inv.get("type") or "numerical"
+            record["kind"] = kind
+            record["type"] = kind
+            if kind == "numerical":
+                record["target_var"] = inv.get("target_var") or "threads"
+                record["operator"] = inv.get("operator") or "<="
+                thresh_val = inv.get("threshold")
+                if thresh_val is None:
+                    expr = inv.get("expression") or ""
+                    import re
+                    match = re.search(r"(\d+)", expr)
+                    thresh_val = int(match.group(1)) if match else 16
+                record["threshold"] = int(thresh_val)
+                record["expression"] = inv.get("expression") or f"{record['target_var']} {record['operator']} {record['threshold']}"
+            elif kind == "semantic":
+                record["pattern"] = inv.get("pattern") or inv.get("expression") or r""
+                record["expression"] = record["pattern"]
+            elif kind == "path":
                 record["allowed_prefixes"] = inv.get("allowed_prefixes", ["src"])
+                record["expression"] = f"prefixes: {record['allowed_prefixes']}"
 
             self._invariants[inv_id] = record
             return dict(record)

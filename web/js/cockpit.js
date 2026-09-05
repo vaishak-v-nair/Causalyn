@@ -702,8 +702,8 @@ function handleAgentThoughtChunk(data) {
 
     if (!textEl) return;
 
-    if (data.chunk_index === 0) {
-        if (idleEl) idleEl.style.display = 'none';
+    if (idleEl && idleEl.style.display !== 'none') {
+        idleEl.style.display = 'none';
         textEl.style.display = 'block';
         textEl.innerHTML = '';
         if (dotEl) dotEl.classList.add('active');
@@ -711,10 +711,11 @@ function handleAgentThoughtChunk(data) {
         isStreamingThought = true;
     }
 
-    if (data.chunk) {
+    const chunkVal = data.chunk || data.token;
+    if (chunkVal) {
         const chunkSpan = document.createElement('span');
         chunkSpan.className = 'thought-token-chunk';
-        chunkSpan.textContent = data.chunk;
+        chunkSpan.textContent = chunkVal;
         textEl.appendChild(chunkSpan);
 
         let cursor = document.getElementById('thought-cursor');
@@ -820,15 +821,29 @@ function renderInvariants(invariants) {
         item.className = `dynamic-inv-item ${inv.enabled ? '' : 'disabled'}`;
         item.id = `inv-item-${inv.id}`;
 
-        const isDefault = ['inv_threads_16', 'inv_mem_1024', 'inv_sockets_100', 'inv_forbid_db_drop', 'inv_forbid_secret_leak'].includes(inv.id);
+        const kind = (inv.kind || inv.type || 'numerical').toLowerCase();
+        let exprText = inv.expression;
+        if (!exprText) {
+            if (inv.target_var) {
+                exprText = `${inv.target_var} ${inv.operator || '<='} ${inv.threshold}`;
+            } else if (inv.pattern) {
+                exprText = inv.pattern;
+            } else if (inv.allowed_prefixes) {
+                exprText = `prefixes: [${inv.allowed_prefixes.join(', ')}]`;
+            } else {
+                exprText = inv.description || '';
+            }
+        }
+
+        const isDefault = inv.builtin === true || ['inv_threads', 'inv_memory', 'inv_sockets', 'inv_forbid_db_drop', 'inv_forbid_secrets', 'inv_allowed_paths'].includes(inv.id);
 
         item.innerHTML = `
             <div class="inv-info">
                 <div class="inv-name-row">
                     <span class="inv-expr">${escapeHtml(inv.name || inv.id)}</span>
-                    <span class="inv-badge ${inv.type}">${inv.type}</span>
+                    <span class="inv-badge ${kind}">${kind.toUpperCase()}</span>
                 </div>
-                <div class="inv-desc">${escapeHtml(inv.expression || inv.rule_type || '')}</div>
+                <div class="inv-desc">${escapeHtml(exprText)}</div>
             </div>
             <div class="inv-switch-wrap">
                 <label class="inv-toggle" title="Toggle invariant active/inactive">
