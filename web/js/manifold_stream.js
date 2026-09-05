@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
 
-let scene, camera, renderer, mesh, wireframeMesh, particles;
+let scene, camera, renderer, mesh, wireframeMesh, particles, epicenterLight;
 let kappaTarget = 0.0;
 let currentKappa = 0.0;
 let cameraMode = 'perspective'; // 'perspective' | 'top' | 'orbit'
@@ -11,8 +11,8 @@ export function initManifold() {
     if (!canvas) return;
 
     scene = new THREE.Scene();
-    // Bright luminous fog matching alabaster body
-    scene.fog = new THREE.FogExp2(0xF8FAFD, 0.025);
+    // Deep obsidian cyber-industrial fog
+    scene.fog = new THREE.FogExp2(0x030712, 0.024);
 
     camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
     setCameraPreset('perspective');
@@ -25,15 +25,15 @@ export function initManifold() {
     const geometry = new THREE.PlaneGeometry(36, 36, 72, 72);
     geometry.rotateX(-Math.PI / 2);
 
-    // High-density luminous surface
+    // Deep obsidian cyber-industrial surface with phosphor cyan specular
     const surfaceMaterial = new THREE.MeshPhongMaterial({
-        color: 0x4F46E5,
-        emissive: 0xEEF2FF,
-        emissiveIntensity: 0.25,
-        specular: 0x818CF8,
-        shininess: 60,
+        color: 0x050C1A,
+        emissive: 0x001B2E,
+        emissiveIntensity: 0.35,
+        specular: 0x00F3FF,
+        shininess: 90,
         transparent: true,
-        opacity: 0.82,
+        opacity: 0.88,
         side: THREE.DoubleSide,
         flatShading: false
     });
@@ -41,54 +41,59 @@ export function initManifold() {
     mesh = new THREE.Mesh(geometry, surfaceMaterial);
     scene.add(mesh);
 
-    // Crystalline Wireframe overlay for mathematical grid lines
+    // High-contrast Phosphor Cyan Wireframe grid
     const wireframeMaterial = new THREE.MeshBasicMaterial({
-        color: 0x312E81,
+        color: 0x00F3FF,
         wireframe: true,
         transparent: true,
-        opacity: 0.45
+        opacity: 0.65
     });
 
     wireframeMesh = new THREE.Mesh(geometry, wireframeMaterial);
     scene.add(wireframeMesh);
 
-    // Ambient floating quantum particles
+    // Ambient floating quantum dust particles in phosphor cyan
     createQuantumParticles();
 
-    // Lighting setup for bright, pristine look
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    // Cyber-industrial lighting setup
+    const ambientLight = new THREE.AmbientLight(0x0A192F, 0.7);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xEEF2FF, 0.8);
-    dirLight1.position.set(20, 40, 20);
+    const dirLight1 = new THREE.DirectionalLight(0x00F3FF, 0.8);
+    dirLight1.position.set(20, 35, 20);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x0284C7, 0.4);
+    const dirLight2 = new THREE.DirectionalLight(0x0284C7, 0.5);
     dirLight2.position.set(-20, 20, -20);
     scene.add(dirLight2);
+
+    // Epicenter dynamic point light at the Gaussian deformation origin
+    epicenterLight = new THREE.PointLight(0x00F3FF, 1.2, 35);
+    epicenterLight.position.set(0, 3.5, 0);
+    scene.add(epicenterLight);
 
     window.addEventListener('resize', onWindowResize, false);
     animate();
 }
 
 function createQuantumParticles() {
-    const count = 300;
+    const count = 350;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
 
     for (let i = 0; i < count * 3; i += 3) {
         positions[i] = (Math.random() - 0.5) * 45;
-        positions[i + 1] = (Math.random() - 0.2) * 20;
+        positions[i + 1] = (Math.random() - 0.2) * 22;
         positions[i + 2] = (Math.random() - 0.5) * 45;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
     const material = new THREE.PointsMaterial({
-        color: 0x6366F1,
-        size: 0.18,
+        color: 0x00F3FF,
+        size: 0.16,
         transparent: true,
-        opacity: 0.45
+        opacity: 0.65
     });
 
     particles = new THREE.Points(geometry, material);
@@ -98,17 +103,31 @@ function createQuantumParticles() {
 export function updateKappaVisuals(kappa) {
     kappaTarget = Math.max(0.0, Math.min(kappa, 2.5));
     
-    // Smooth transition between Safe Cobalt and Paradox Crimson
+    // Dynamic transition: Phosphor Cyan (Equilibrium) <-> Violent Infrared Crimson (Paradox)
     if (kappaTarget > 0.05) {
-        mesh.material.color.setHex(0xE11D48); // Vivid Rose Crimson
-        mesh.material.emissive.setHex(0xFFF1F2);
-        mesh.material.specular.setHex(0xF43F5E);
-        wireframeMesh.material.color.setHex(0xBE123C);
+        mesh.material.color.setHex(0x1F050A);      // Deep obsidian crimson
+        mesh.material.emissive.setHex(0xFF1E44);   // Violent infrared crimson
+        mesh.material.specular.setHex(0xFF3355);   // High-intensity crimson specular
+        wireframeMesh.material.color.setHex(0xFF1E44);
+        wireframeMesh.material.opacity = 0.95;
+        if (epicenterLight) {
+            epicenterLight.color.setHex(0xFF1E44);
+        }
+        if (particles) {
+            particles.material.color.setHex(0xFF1E44);
+        }
     } else {
-        mesh.material.color.setHex(0x4F46E5); // Royal Electric Indigo
-        mesh.material.emissive.setHex(0xEEF2FF);
-        mesh.material.specular.setHex(0x6366F1);
-        wireframeMesh.material.color.setHex(0x3730A3);
+        mesh.material.color.setHex(0x050C1A);      // Deep obsidian base
+        mesh.material.emissive.setHex(0x001B2E);   // Subtle cyan-indigo glow
+        mesh.material.specular.setHex(0x00F3FF);   // Brilliant phosphor cyan specular
+        wireframeMesh.material.color.setHex(0x00F3FF);
+        wireframeMesh.material.opacity = 0.65;
+        if (epicenterLight) {
+            epicenterLight.color.setHex(0x00F3FF);
+        }
+        if (particles) {
+            particles.material.color.setHex(0x00F3FF);
+        }
     }
 }
 
@@ -123,32 +142,6 @@ export function setCameraPreset(preset) {
     } else if (preset === 'orbit') {
         camera.position.set(16, 11, 16);
         camera.lookAt(0, 1, 0);
-    }
-}
-
-export function playManimVideo(b64VideoData) {
-    const video = document.getElementById('manim-video-player');
-    const placeholder = document.getElementById('manim-placeholder');
-    
-    if (video && b64VideoData) {
-        if (placeholder) placeholder.style.display = 'none';
-        video.style.display = 'block';
-        video.src = 'data:video/mp4;base64,' + b64VideoData;
-        video.currentTime = 0;
-        video.play().catch(e => console.warn("Video auto-play suppressed", e));
-    }
-}
-
-export function resetManimVideo() {
-    const video = document.getElementById('manim-video-player');
-    const placeholder = document.getElementById('manim-placeholder');
-    
-    if (video) {
-        video.style.display = 'none';
-        video.src = "";
-    }
-    if (placeholder) {
-        placeholder.style.display = 'flex';
     }
 }
 
@@ -167,6 +160,17 @@ function animate() {
 
     const time = Date.now() * 0.001;
 
+    // Dynamic light intensity and emissive response scaling with kappa
+    if (epicenterLight) {
+        if (currentKappa > 0.05) {
+            epicenterLight.intensity = 1.5 + currentKappa * 5.0;
+            mesh.material.emissiveIntensity = 0.35 + currentKappa * 0.85;
+        } else {
+            epicenterLight.intensity = 1.2 + Math.sin(time * 2.0) * 0.2;
+            mesh.material.emissiveIntensity = 0.35;
+        }
+    }
+
     // Camera orbit animation if selected
     if (cameraMode === 'orbit') {
         orbitAngle += 0.004;
@@ -183,11 +187,11 @@ function animate() {
         const v = posAttr.getZ(i);
         
         // Continuous wave
-        let y = Math.sin(u * 0.4 + time * 0.8) * Math.cos(v * 0.4 + time * 0.8) * 1.4;
+        let y = Math.sin(u * 0.4 + time * 0.8) * Math.cos(v * 0.4 + time * 0.8) * 1.3;
         
-        // Concentrated Gaussian paradox peak at origin
+        // Concentrated Gaussian paradox peak at origin (Violent Infrared Spike)
         const distSq = (u * u + v * v) * 0.12;
-        y += currentKappa * 6.5 * Math.exp(-distSq);
+        y += currentKappa * 7.5 * Math.exp(-distSq);
 
         posAttr.setY(i, y);
     }

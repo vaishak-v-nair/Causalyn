@@ -1,5 +1,5 @@
-import { initManifold, updateKappaVisuals, setCameraPreset } from './manifold_stream.js';
-import { initAudioEngine, playEquilibriumChime, playParadoxGlitch, playSynthesisSweep, toggleMute } from './audio_engine.js';
+import { initManifold, updateKappaVisuals, setCameraPreset } from './manifold_stream.js?v=3.2.0';
+import { initAudioEngine, playEquilibriumChime, playParadoxGlitch, playSynthesisSweep, toggleMute } from './audio_engine.js?v=3.2.0';
 
 let ws = null;
 let isPlayingTimeline = false;
@@ -7,19 +7,39 @@ let timelineInterval = null;
 let currentTimelineVal = 0;
 let currentActiveView = 'manifold';
 
-const THEOREM_VIDEOS = {
-    'paradox': '/assets/manim/videos/paradox_index/480p15/ParadoxIndexScene.mp4',
-    'operator': '/assets/manim/videos/vaishak_operator/480p15/VaishakOperatorScene.mp4',
-    'nullification': '/assets/manim/videos/semantic_nullification/480p15/SemanticNullificationScene.mp4',
-    'compiler': '/assets/manim/videos/acausal_compiler/480p15/AcausalCompilerScene.mp4'
-};
-
-const THEOREM_FORMULAS = {
-    'manifold': 'z = sin(u)cos(v) + κ · e^{-(u² + v²)}',
-    'paradox': 'κ = Σ ω_v · P(Sc, Sl)  [Penalty Metric]',
-    'operator': 'Υ(κ, f) = { COMMIT if κ=0, ANNIHILATE if κ>0 }',
-    'nullification': 'S ∈ 𝒩_semantic ⟺ κ(S, ℐ) = 0',
-    'compiler': '∂g/∂t = -2 · Ric(g)  [Semantic Ricci Flow]'
+const THEOREM_METADATA = {
+    'paradox': {
+        title: 'PARADOX INDEX (κ)',
+        tag: 'VPSN AXIOM I',
+        formula: 'κ = Σ ω_v · P_v(S_c, S_l)',
+        heading: 'Acausal Divergence Metric',
+        description: 'Quantifies instantaneous geometrical divergence from the verified invariant manifold ℳ_ℐ. Non-zero values trigger fail-closed state nullification before disk write.',
+        video: '/assets/manim/videos/paradox_index/480p15/ParadoxIndexScene.mp4'
+    },
+    'operator': {
+        title: 'VAISHAK OPERATOR (Υ)',
+        tag: 'VPSN AXIOM II',
+        formula: 'Υ(κ, f) = { COMMIT(f) if κ=0, ANNIHILATE(f) if κ>0 }',
+        heading: 'Fail-Closed State Nullification',
+        description: 'Enforces quantum state collapse under non-zero paradox curvature. Eliminates partial writes and guarantees zero host disk corruption.',
+        video: '/assets/manim/videos/vaishak_operator/480p15/VaishakOperatorScene.mp4'
+    },
+    'nullification': {
+        title: 'SEMANTIC NULLIFICATION',
+        tag: 'VPSN AXIOM III',
+        formula: 'S ∈ 𝒩_semantic ⟺ κ(S, ℐ) = 0',
+        heading: 'Semantic Null-Space Invariance',
+        description: 'Guarantees that production state remains pristine while the ephemeral shadow sandbox absorbs and nullifies all destructive semantic interference.',
+        video: '/assets/manim/videos/semantic_nullification/480p15/SemanticNullificationScene.mp4'
+    },
+    'compiler': {
+        title: 'ACAUSAL RICCI FLOW',
+        tag: 'VPSN AXIOM IV',
+        formula: '∂g/∂t = -2 · Ric(g)  [CEGIS Synthesis]',
+        heading: 'Topological Invariant Relaxation',
+        description: 'Continuously relaxes counterexample constraints to synthesize geometrically compliant AST replacements without trial-and-error compile loops.',
+        video: '/assets/manim/videos/acausal_compiler/480p15/AcausalCompilerScene.mp4'
+    }
 };
 
 export function initCockpit() {
@@ -64,6 +84,60 @@ function initWebSocket() {
     }
 }
 
+function generateMicroDiff(data) {
+    if (data.status === "SYNTHESIZED" && data.patch && data.patch.values) {
+        const lines = [];
+        const stateVars = data.proposed_state || { threads: 32, memory: 4096 };
+        for (const [k, newVal] of Object.entries(data.patch.values)) {
+            const oldVal = stateVars[k] !== undefined ? stateVars[k] : 32;
+            lines.push(`
+                <div class="diff-line diff-del">- ${k} = ${oldVal}  <span class="diff-meta"># [κ = ${data.kappa.toFixed(2)} ANNIHILATED]</span></div>
+                <div class="diff-line diff-add">+ ${k} = ${newVal}  <span class="diff-meta"># [SYNTHESIZED via CEGIS]</span></div>
+            `);
+        }
+        return `
+            <div class="diff-container">
+                <div class="diff-header">
+                    <span>CEGIS AST AUTO-PATCH DIFF</span>
+                    <span style="color: var(--cyan-accent);">RICCI RELAXATION</span>
+                </div>
+                ${lines.join('')}
+            </div>
+        `;
+    } else if (data.status === "ANNIHILATED") {
+        const stateVars = data.proposed_state || { sockets: 256 };
+        const lines = [];
+        for (const [k, val] of Object.entries(stateVars)) {
+            lines.push(`
+                <div class="diff-line diff-del">- ${k} = ${val}  <span class="diff-meta"># [κ = ${data.kappa.toFixed(2)} STATE COLLAPSED]</span></div>
+            `);
+        }
+        return `
+            <div class="diff-container danger">
+                <div class="diff-header">
+                    <span>SEMANTIC NULLIFICATION — COLLAPSE</span>
+                    <span style="color: var(--paradox-crimson);">ZERO DISK LEAK</span>
+                </div>
+                ${lines.join('')}
+                <div class="diff-line diff-annihilate">! [SHADOW SANDBOX PURGED — ZERO DISK MUTATION]</div>
+            </div>
+        `;
+    } else if (data.status === "COMMITTED") {
+        const stateVars = data.proposed_state || { threads: 8, memory: 512 };
+        const pairs = Object.entries(stateVars).map(([k, v]) => `${k} = ${v}`).join(', ');
+        return `
+            <div class="diff-container">
+                <div class="diff-header">
+                    <span>VPSN EQUILIBRIUM VERIFIED</span>
+                    <span style="color: var(--safe-emerald);">ATOMIC COMMIT</span>
+                </div>
+                <div class="diff-line diff-commit">✓ ${pairs}  <span class="diff-meta"># [κ = 0.00 COMMITTED]</span></div>
+            </div>
+        `;
+    }
+    return '';
+}
+
 function handleServerMessage(data) {
     if (data.type === "paradox_spike") {
         const isParadox = data.kappa > 0.05;
@@ -78,24 +152,27 @@ function handleServerMessage(data) {
             playEquilibriumChime();
         }
 
-        // 2. Log to Swarm Feed
+        // 2. Generate inline micro-diff
+        const diffSnippet = generateMicroDiff(data);
+
+        // 3. Log to Swarm Feed with micro-diff
         const typeClass = isParadox ? "danger" : "safe";
         const msg = `[${data.status}] ${data.target_file} | κ=${data.kappa.toFixed(2)} | Latency: ${data.latency_us.toFixed(1)}µs`;
-        logToFeed(data.agent_id || "WORKER", msg, typeClass, data.vector_clock || 1);
+        logToFeed(data.agent_id || "WORKER", msg, typeClass, data.vector_clock || 1, diffSnippet);
 
-        // 3. Update HUD Metrics
+        // 4. Update HUD Metrics
         updateMetrics(data.kappa, data.latency_us, data.status);
 
-        // 4. Update 3D Manifold
+        // 5. Update 3D Manifold (Cyber-industrial contrast)
         updateKappaVisuals(data.kappa);
         
-        // 5. Update timeline slider position
+        // 6. Update timeline slider position
         syncTimelineWithKappa(data.kappa);
 
-        // 6. Update Z3 Proof Box
-        renderZ3Proof(data);
+        // 7. Update Z3 Proof Box with inline AST Auto-Patch Diff
+        renderZ3Proof(data, diffSnippet);
 
-        // 7. Update Cryptographic Commit Ledger
+        // 8. Update Cryptographic Commit Ledger
         if (data.status === "COMMITTED" || data.status === "SYNTHESIZED") {
             appendCommitHash(data.agent_id, data.target_file);
         }
@@ -108,36 +185,54 @@ function handleServerMessage(data) {
 
 function switchTheatreView(viewName) {
     currentActiveView = viewName;
+    const hudOverlay = document.getElementById('theorem-hud-overlay');
     const player = document.getElementById('manim-theatre-player');
     const formulaText = document.getElementById('stage-formula-text');
-    const cameraControls = document.getElementById('camera-controls');
 
     // Update active tab button
     document.querySelectorAll('.btn-theorem').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === viewName);
     });
 
-    if (formulaText) {
-        formulaText.textContent = THEOREM_FORMULAS[viewName] || '';
-    }
-
     if (viewName === 'manifold') {
-        // Return to 3D Three.js canvas
+        // Return to clean unobstructed 3D Manifold view
+        if (hudOverlay) {
+            hudOverlay.classList.remove('visible');
+        }
         if (player) {
             player.pause();
-            player.style.display = 'none';
         }
-        if (cameraControls) cameraControls.style.display = 'flex';
+        if (formulaText) {
+            formulaText.textContent = 'z = sin(u)cos(v) + κ · e^{-(u² + v²)}';
+        }
     } else {
-        // Load and play Manim mathematical animation video
-        if (cameraControls) cameraControls.style.display = 'none';
-        if (player) {
-            const videoUrl = THEOREM_VIDEOS[viewName];
-            if (videoUrl) {
-                player.src = videoUrl;
-                player.style.display = 'block';
+        // Floating HUD overlay directly over the pulsing 3D mesh
+        const meta = THEOREM_METADATA[viewName];
+        if (meta) {
+            const titleEl = document.getElementById('hud-theorem-title');
+            const tagEl = document.getElementById('hud-axiom-tag');
+            const formulaEl = document.getElementById('hud-formula-display');
+            const headEl = document.getElementById('hud-desc-heading');
+            const bodyEl = document.getElementById('hud-desc-body');
+
+            if (titleEl) titleEl.textContent = meta.title;
+            if (tagEl) tagEl.textContent = meta.tag;
+            if (formulaEl) formulaEl.textContent = meta.formula;
+            if (headEl) headEl.textContent = meta.heading;
+            if (bodyEl) bodyEl.textContent = meta.description;
+
+            if (formulaText) {
+                formulaText.textContent = meta.formula;
+            }
+
+            if (player && meta.video) {
+                player.src = meta.video;
                 player.currentTime = 0;
-                player.play().catch(e => console.warn("Auto-play suppressed", e));
+                player.play().catch(e => console.warn("Video auto-play suppressed", e));
+            }
+
+            if (hudOverlay) {
+                hudOverlay.classList.add('visible');
             }
         }
     }
@@ -163,11 +258,11 @@ function updateMetrics(kappa, latencyUs, status) {
 
     if (statusEl) {
         statusEl.textContent = status;
-        statusEl.style.color = kappa > 0.05 ? '#E11D48' : '#059669';
+        statusEl.style.color = kappa > 0.05 ? '#FF1E44' : '#10B981';
     }
 }
 
-function renderZ3Proof(data) {
+function renderZ3Proof(data, diffSnippet = '') {
     const box = document.getElementById('proof-box');
     if (!box) return;
 
@@ -179,15 +274,23 @@ function renderZ3Proof(data) {
 
     if (data.kappa > 0.05) {
         proofHtml += `
-            <div class="proof-line" style="color: #E11D48;"><strong>UNSAT:</strong> Constraint violated (κ = ${data.kappa.toFixed(2)})</div>
+            <div class="proof-line" style="color: #FF1E44;"><strong>UNSAT:</strong> Constraint violated (κ = ${data.kappa.toFixed(2)})</div>
             <div class="proof-line">Counterexample: Model generated via Z3 solver</div>
-            <div class="proof-line verified">CEGIS Rewrite: AST patched & verified in memory</div>
         `;
+        if (data.status === "SYNTHESIZED") {
+            proofHtml += `<div class="proof-line verified">CEGIS Rewrite: AST patched & verified in memory</div>`;
+        } else {
+            proofHtml += `<div class="proof-line" style="color: #FF1E44;"><strong>ANNIHILATED:</strong> Unrecoverable state. Shadow purged.</div>`;
+        }
     } else {
         proofHtml += `
             <div class="proof-line verified"><strong>SAT:</strong> Invariant space verified (κ = 0.00)</div>
             <div class="proof-line verified">State Projection ∈ Null-Space 𝒩_semantic</div>
         `;
+    }
+
+    if (diffSnippet) {
+        proofHtml += diffSnippet;
     }
 
     box.innerHTML = proofHtml;
@@ -201,7 +304,7 @@ function appendCommitHash(agentId, file) {
     hashItem.className = 'invariant-chip';
     const fakeHash = "0x" + Array.from({length: 12}, () => Math.floor(Math.random()*16).toString(16)).join('');
     hashItem.innerHTML = `
-        <span>${fakeHash}</span>
+        <span style="color: var(--cyan-accent);">${fakeHash}</span>
         <span class="invariant-status">${agentId.slice(-6)}</span>
     `;
     list.prepend(hashItem);
@@ -211,7 +314,7 @@ function appendCommitHash(agentId, file) {
     }
 }
 
-function logToFeed(source, message, type = "normal", clock = null) {
+function logToFeed(source, message, type = "normal", clock = null, diffHtml = null) {
     const feed = document.getElementById('terminal-feed');
     if (!feed) return;
 
@@ -224,9 +327,12 @@ function logToFeed(source, message, type = "normal", clock = null) {
     entry.innerHTML = `
         <div class="log-header">
             <span class="log-agent">${source}</span>
-            <div>${clockBadge} <span>${now}</span></div>
+            <div>${clockBadge} <span style="margin-left: 6px;">${now}</span></div>
         </div>
-        <div class="log-body">${message}</div>
+        <div class="log-body">
+            <div>${message}</div>
+            ${diffHtml ? diffHtml : ''}
+        </div>
     `;
 
     feed.prepend(entry);
@@ -240,13 +346,15 @@ function updateSystemStatus(online) {
     const text = document.getElementById('status-text');
     if (dot && text) {
         if (online) {
-            dot.style.background = '#059669';
-            dot.style.boxShadow = '0 0 8px #059669';
+            dot.style.background = '#10B981';
+            dot.style.boxShadow = '0 0 10px #10B981';
             text.textContent = 'CONTINUUM ACTIVE';
+            text.style.color = '#10B981';
         } else {
-            dot.style.background = '#E11D48';
-            dot.style.boxShadow = '0 0 8px #E11D48';
+            dot.style.background = '#FF1E44';
+            dot.style.boxShadow = '0 0 10px #FF1E44';
             text.textContent = 'RECONNECTING';
+            text.style.color = '#FF1E44';
         }
     }
 }
@@ -258,6 +366,18 @@ function setupControls() {
         btn.addEventListener('click', () => {
             switchTheatreView(btn.dataset.view);
         });
+    });
+
+    // Dismiss HUD overlay button
+    document.getElementById('btn-hud-close')?.addEventListener('click', () => {
+        switchTheatreView('manifold');
+    });
+
+    // ESC key closes HUD
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && currentActiveView !== 'manifold') {
+            switchTheatreView('manifold');
+        }
     });
 
     // Camera buttons
@@ -310,7 +430,7 @@ function setupControls() {
         });
     }
 
-    // Simulation Triggers (Serious, Formal Process Names)
+    // Simulation Triggers (Deterministic VPSN Scenarios)
     document.getElementById('btn-sim-safe')?.addEventListener('click', () => {
         triggerSimulation("WORKER-TX-01", "config.py", "threads = 8\nmemory = 512", { threads: 8, memory: 512 });
     });
@@ -385,14 +505,22 @@ async function triggerSimulation(agentId, file, code, stateVars) {
     } catch (err) {
         console.warn("Backend request fallback", err);
         const isParadox = (stateVars.threads && stateVars.threads > 16) || (stateVars.memory && stateVars.memory > 1024) || (stateVars.sockets && stateVars.sockets > 100);
+        const isAnnihilated = stateVars.sockets && stateVars.sockets > 200;
+        const status = isAnnihilated ? "ANNIHILATED" : (isParadox ? "SYNTHESIZED" : "COMMITTED");
+        const kappa = isAnnihilated ? 999.0 : (isParadox ? 1.0 : 0.0);
+        const patch = isParadox ? (isAnnihilated ? { annihilated: true } : { corrected: true, values: { threads: 16, memory: 1024 } }) : null;
+
         handleServerMessage({
             type: "paradox_spike",
             agent_id: agentId,
             target_file: file,
-            kappa: isParadox ? 1.0 : 0.0,
-            status: isParadox ? "SYNTHESIZED" : "COMMITTED",
+            kappa: kappa,
+            status: status,
             latency_us: 1420.5,
-            vector_clock: Math.floor(Math.random() * 20) + 1
+            vector_clock: Math.floor(Math.random() * 20) + 1,
+            patch: patch,
+            proposed_state: stateVars,
+            proposed_content: code
         });
     }
 }

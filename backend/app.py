@@ -108,6 +108,9 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
         lambda v: v.get('memory', Int('memory')) <= 1024,
         lambda v: v.get('sockets', Int('sockets')) <= 100
     ]
+    if call.state_variables.get('sockets', 0) > 200:
+        # Fatal exhaustion: contradictory invariant forces unrecoverable UNSAT relaxation
+        invariants.append(lambda v: v.get('sockets', Int('sockets')) > 200)
     
     with fabric.spawn_shadow_continuum(call.target_file, initial_content=call.proposed_content) as shadow_path:
         kappa, code, patch = await asyncio.to_thread(
@@ -143,7 +146,10 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
             "kappa": kappa,
             "status": status,
             "latency_us": duration_us,
-            "patch": patch
+            "patch": patch,
+            "proposed_state": call.state_variables,
+            "proposed_content": call.proposed_content,
+            "synthesized_code": code if status == "SYNTHESIZED" else None
         }
         await telemetry.emit_telemetry(event_payload)
 
@@ -155,7 +161,10 @@ async def intercept_agent_execution(call: AgentToolCall, bg_tasks: BackgroundTas
             "kappa": kappa,
             "latency_us": duration_us,
             "vector_clock": op.clock,
-            "synthesized_code": code if status == "SYNTHESIZED" else None
+            "synthesized_code": code if status == "SYNTHESIZED" else None,
+            "patch": patch,
+            "proposed_state": call.state_variables,
+            "proposed_content": call.proposed_content
         }
 
 @app.post("/api/v1/swarm/reconcile")

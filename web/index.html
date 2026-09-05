@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Causalyn | Acausal Execution Runtime</title>
-    <link rel="stylesheet" href="css/glassmorphism.css">
+    <link rel="stylesheet" href="css/glassmorphism.css?v=3.2.0">
 </head>
 <body>
 
@@ -98,7 +98,7 @@
                     </div>
                 </div>
 
-                <!-- Main Stage Canvas: Displays either the 3D Continuum or the Manim Mathematical Proof -->
+                <!-- Main Stage Canvas: Displays 3D Continuum with Floating Ambient Math HUD -->
                 <div class="stage-main-canvas" id="stage-main-canvas">
                     
                     <!-- HUD Formula Indicator -->
@@ -106,13 +106,50 @@
                         <div class="formula-chip" id="stage-formula-text">
                             z = sin(u)cos(v) + κ · e^{-(u² + v²)}
                         </div>
-                        <div class="formula-chip" style="color: var(--indigo-primary); font-weight: 700;">
-                            3B1B/MANIM THEOREM SUITE
+                        <div class="formula-chip" style="color: var(--cyan-accent); font-weight: 700;">
+                            3B1B/MANIM CONTINUUM SUITE
                         </div>
                     </div>
 
-                    <!-- Manim High-Definition Video Theatre -->
-                    <video id="manim-theatre-player" loop muted playsinline></video>
+                    <!-- Ambient Frosted Glass HUD Overlay for Mathematical Theorems -->
+                    <div class="theorem-hud-overlay" id="theorem-hud-overlay">
+                        <div class="hud-card-header">
+                            <div class="hud-title-wrap">
+                                <span class="hud-status-pulse"></span>
+                                <span class="hud-theorem-badge" id="hud-theorem-title">PARADOX INDEX (κ)</span>
+                                <span class="hud-axiom-tag" id="hud-axiom-tag">VPSN AXIOM I</span>
+                            </div>
+                            <button class="btn-hud-close" id="btn-hud-close" title="Dismiss HUD and return to 3D Manifold">
+                                <span>✕</span> RETURN TO MANIFOLD
+                            </button>
+                        </div>
+
+                        <!-- Mathematical LaTeX Display -->
+                        <div class="hud-formula-display" id="hud-formula-display">
+                            κ = Σ ω_v · P_v(S_c, S_l)
+                        </div>
+
+                        <!-- Formal Exposition & Physical Invariant -->
+                        <div class="hud-description-box">
+                            <div class="hud-desc-heading" id="hud-desc-heading">Acausal Divergence Penalty</div>
+                            <div class="hud-desc-body" id="hud-desc-body">
+                                Measures instantaneous geometric deviation from the verified invariant manifold ℳ_ℐ. Non-zero values trigger fail-closed state nullification.
+                            </div>
+                        </div>
+
+                        <!-- Inset Manim Video Theatre -->
+                        <div class="hud-theatre-box">
+                            <div class="hud-theatre-bar">
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--cyan-accent); font-weight: 700;">
+                                    ▶ 3B1B/MANIM RIGOROUS PROOF THEATRE
+                                </span>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted);" id="hud-video-badge">
+                                    480p15 FORMAL PROOF
+                                </span>
+                            </div>
+                            <video id="manim-theatre-player" loop muted playsinline></video>
+                        </div>
+                    </div>
 
                 </div>
 
@@ -215,6 +252,6 @@
     </div>
 
     <!-- Master Cockpit Controller Script -->
-    <script type="module" src="js/cockpit.js"></script>
+    <script type="module" src="js/cockpit.js?v=3.2.0"></script>
 </body>
 </html>
