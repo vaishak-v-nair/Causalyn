@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 import asyncio
 import json
@@ -366,6 +366,13 @@ if web_dir.exists():
         if invariants_file.exists():
             return FileResponse(invariants_file)
         return FileResponse(web_dir / "index.html")
+
+    @app.api_route("/favicon.ico", methods=["GET", "HEAD"])
+    async def serve_favicon():
+        favicon_file = web_dir / "assets" / "favicon.svg"
+        if favicon_file.exists():
+            return FileResponse(favicon_file, media_type="image/svg+xml")
+        return Response(status_code=204)
 
     @app.get("/docs/The_Vaishak_Principle_Illustrated.pdf")
     async def serve_whitepaper():

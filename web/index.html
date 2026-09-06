@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Causalyn | Acausal Execution Runtime</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico">
     <link rel="stylesheet" href="css/glassmorphism.css?v=3.3.0">
     <script src="/static/three.min.js"></script>
 </head>
@@ -20,7 +21,7 @@
                 <div class="brand-logo">C</div>
                 <div>
                     <h1 class="brand-title" style="margin: 0; font-size: 18px; line-height: 1.2;">CAUSALYN</h1>
-                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px;">ACAUSAL EXECUTION RUNTIME</div>
+                    <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px;">FORMAL VERIFICATION HYPERVISOR</div>
                 </div>
                 <span class="brand-badge" id="brand-mode-badge">AUTOBAHN v3.2</span>
             </div>
@@ -43,6 +44,11 @@
 
             <!-- Top Deck Right: Mode Switchers, Audio & Kernel Status -->
             <div class="deck-mode-selectors">
+                <!-- How It Works 30s Explainer Guide Button -->
+                <button class="btn-how-it-works" id="btn-how-it-works" title="How Causalyn Works: 30-second interactive architecture guide">
+                    <span>💡</span> HOW IT WORKS
+                </button>
+
                 <!-- Stance Switch: Compiler Autobahn vs Defensive Continuum -->
                 <div class="stance-switch-group">
                     <button class="btn-stance active" id="btn-stance-autobahn" data-stance="autobahn" title="Acausal Compiler Mode: Sub-millisecond CEGIS AST synthesis, 34,200x speedup">
@@ -153,6 +159,55 @@
             </div>
         </div>
 
+        <!-- 3-Phase Acausal Execution Lifecycle Stepper: Directly binds the 3 Cockpit Zones -->
+        <div class="lifecycle-stepper-bar interactive" id="lifecycle-stepper" aria-label="Execution Lifecycle">
+            <div class="stepper-track">
+                <!-- Step 1 (Zone 1) -->
+                <div class="stepper-step active" id="stepper-step-1" data-phase="1">
+                    <div class="step-num-pill">
+                        <span class="step-num">PHASE 1</span>
+                        <span class="step-dot"></span>
+                    </div>
+                    <div class="step-meta">
+                        <div class="step-heading">AGENT INTENT &amp; SPECULATION</div>
+                        <div class="step-sub">Raw Speculative AST &bull; Prompt Stream</div>
+                    </div>
+                </div>
+
+                <div class="stepper-arrow">
+                    <span class="arrow-glyph">&rarr;</span>
+                </div>
+
+                <!-- Step 2 (Zone 2) -->
+                <div class="stepper-step" id="stepper-step-2" data-phase="2">
+                    <div class="step-num-pill">
+                        <span class="step-num">PHASE 2</span>
+                        <span class="step-dot"></span>
+                    </div>
+                    <div class="step-meta">
+                        <div class="step-heading">SHADOW INTERCEPT &amp; MANIFOLD</div>
+                        <div class="step-sub">Ephemeral Sandbox &bull; Curvature Distance (κ)</div>
+                    </div>
+                </div>
+
+                <div class="stepper-arrow">
+                    <span class="arrow-glyph">&rarr;</span>
+                </div>
+
+                <!-- Step 3 (Zone 3) -->
+                <div class="stepper-step" id="stepper-step-3" data-phase="3">
+                    <div class="step-num-pill">
+                        <span class="step-num">PHASE 3</span>
+                        <span class="step-dot"></span>
+                    </div>
+                    <div class="step-meta">
+                        <div class="step-heading">Z3 SMT PROOF &amp; COMMIT</div>
+                        <div class="step-sub">44µs Auto-Patch &bull; Atomic Disk Sync</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 3-Zone Acausal Cockpit -->
         <main class="cockpit-grid">
             
@@ -176,8 +231,50 @@
                     </div>
                     <div class="reasoning-body" id="reasoning-body">
                         <div class="reasoning-idle" id="reasoning-idle">
-                            <span class="idle-icon">⚡</span>
-                            <span>Awaiting agent prompt... Run a prompt above to watch real-time token synthesis and hypervisor interception.</span>
+                            <div class="idle-mission-header">
+                                <span class="mission-tag">EXPLORE GUIDED SCENARIOS</span>
+                                <span class="mission-instruction">Click a scenario below or enter a prompt above:</span>
+                            </div>
+                            <div class="guided-scenarios-container">
+                                <!-- Scenario 1: CEGIS Auto-Patch -->
+                                <div class="guided-scenario-card warning" id="card-scen-cegis" title="Launch CEGIS Auto-Patch Scenario">
+                                    <div class="card-scen-header">
+                                        <div class="scen-badge"><span class="badge-icon">⚡</span> AUTO-PATCH</div>
+                                        <span class="scen-speed">44.02 µs</span>
+                                    </div>
+                                    <div class="scen-title">Scale Workers (Thread Over-Allocation)</div>
+                                    <div class="scen-desc">Agent proposes <code>threads=64</code> (violates <code>threads &lt;= 16</code>). Hypervisor intercepts and synthesizes compliant AST in 44µs.</div>
+                                    <div class="scen-footer">
+                                        <span class="scen-action">RUN IN SHADOW &rarr;</span>
+                                    </div>
+                                </div>
+
+                                <!-- Scenario 2: Barrier Annihilation -->
+                                <div class="guided-scenario-card danger" id="card-scen-drop" title="Launch Database Annihilation Scenario">
+                                    <div class="card-scen-header">
+                                        <div class="scen-badge red"><span class="badge-icon">🛡️</span> STATE COLLAPSE</div>
+                                        <span class="scen-speed">0 BYTES ON DISK</span>
+                                    </div>
+                                    <div class="scen-title">Database DROP TABLE Attack</div>
+                                    <div class="scen-desc">Agent proposes <code>DROP TABLE users</code>. Vaishak Operator instantly annihilates state with zero host writes.</div>
+                                    <div class="scen-footer">
+                                        <span class="scen-action red">TEST COLLAPSE &rarr;</span>
+                                    </div>
+                                </div>
+
+                                <!-- Scenario 3: Safe Spec -->
+                                <div class="guided-scenario-card safe" id="card-scen-safe" title="Launch Safe Spec Scenario">
+                                    <div class="card-scen-header">
+                                        <div class="scen-badge green"><span class="badge-icon">🟢</span> COMPLIANT</div>
+                                        <span class="scen-speed">κ = 0.00</span>
+                                    </div>
+                                    <div class="scen-title">Refactor Auth Handler (Safe Bounds)</div>
+                                    <div class="scen-desc">Agent requests verified bounds (<code>threads=8, memory=512MB</code>). Proves SMT SAT and commits atomically with SHA-256 hash.</div>
+                                    <div class="scen-footer">
+                                        <span class="scen-action green">EXECUTE &rarr;</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="reasoning-text" id="reasoning-text" style="display: none;"></div>
                     </div>
@@ -291,8 +388,10 @@
                 </div>
 
                 <!-- Paradox Index Metric -->
-                <div class="metric-card">
-                    <span class="metric-label" id="metric-kappa-label">PARADOX CURVATURE (κ)</span>
+                <div class="metric-card" title="Paradox Curvature (κ): Measures geometric distance of candidate state from verified invariant boundary. 0.00 = safe; >0 = hazard.">
+                    <span class="metric-label" id="metric-kappa-label">
+                        PARADOX CURVATURE (κ) <span class="info-icon">ⓘ</span>
+                    </span>
                     <div class="metric-value-row">
                         <div class="metric-value" id="metric-kappa">0.00</div>
                         <div class="metric-sub" id="metric-status" style="color: var(--safe-emerald); font-weight: 700;">EQUILIBRIUM</div>
@@ -300,8 +399,10 @@
                 </div>
 
                 <!-- Latency Metric -->
-                <div class="metric-card">
-                    <span class="metric-label" id="metric-latency-label">HYPERVISOR INTERCEPT LATENCY</span>
+                <div class="metric-card" title="Hypervisor Interception Latency: Time taken to catch syscalls in shadow RAM and verify SMT constraints.">
+                    <span class="metric-label" id="metric-latency-label">
+                        HYPERVISOR INTERCEPT LATENCY <span class="info-icon">ⓘ</span>
+                    </span>
                     <div class="metric-value-row">
                         <div class="metric-value" id="metric-latency" style="font-size: 24px; color: var(--text-primary);">0.0 µs</div>
                         <div class="metric-sub" id="metric-latency-sub">SUB-MILLISECOND</div>
@@ -343,6 +444,48 @@
             </aside>
 
         </main>
+    </div>
+
+    <!-- How It Works Interactive Modal Guide -->
+    <div class="modal-backdrop" id="modal-how-it-works" style="display: none;">
+        <div class="modal-window">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="brand-logo" style="width: 28px; height: 28px; font-size: 15px;">C</div>
+                    <div>
+                        <h3 style="font-family: 'Outfit', sans-serif; font-weight: 800; margin: 0; font-size: 16px; color: #fff;">HOW CAUSALYN WORKS</h3>
+                        <div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">THE 3-PHASE ACAUSAL EXECUTION PIPELINE</div>
+                    </div>
+                </div>
+                <button class="btn-modal-close" id="btn-close-how-it-works">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-step-card">
+                    <div class="modal-step-num">01</div>
+                    <div class="modal-step-info">
+                        <h4>Phase 1: Agent Intent &amp; Shadow Memory Interception</h4>
+                        <p>When an autonomous agent (Claude Code, Cursor IDE, or Terminal CLI) initiates an action, Causalyn intercepts it before disk sync, creating an isolated Copy-on-Write candidate state in ephemeral memory.</p>
+                    </div>
+                </div>
+                <div class="modal-step-card">
+                    <div class="modal-step-num">02</div>
+                    <div class="modal-step-info">
+                        <h4>Phase 2: Formal Invariant Verification on 3D Manifold</h4>
+                        <p>Candidate state mutations are compiled directly against the invariant manifold via Z3 SMT solvers. The Paradox Index &kappa; measures mathematical counterexample distance, physically deforming the 3D continuum if violations exist.</p>
+                    </div>
+                </div>
+                <div class="modal-step-card">
+                    <div class="modal-step-num">03</div>
+                    <div class="modal-step-info">
+                        <h4>Phase 3: Sub-Millisecond AST Auto-Patch vs. State Annihilation</h4>
+                        <p>If &kappa; = 0, state commits atomically with a SHA-256 hash. If &kappa; &gt; 0, the CEGIS compiler auto-repairs code parameters in <strong>44µs</strong> (34,200&times; faster than LLM re-prompt loops). Toxic actions (like <code>DROP TABLE</code>) collapse into null-space with <strong>zero bytes touched on disk</strong>.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cta" id="btn-modal-dismiss">EXPLORE LIVE RUNTIME &rarr;</button>
+            </div>
+        </div>
     </div>
 
     <!-- Master Cockpit Controller Script -->

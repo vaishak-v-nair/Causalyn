@@ -44,6 +44,36 @@ const THEOREM_METADATA = {
     }
 };
 
+// ==========================================================================
+// 3-PHASE EXECUTION LIFECYCLE STEPPER
+// ==========================================================================
+export function setLifecyclePhase(phaseNum, status = 'active') {
+    const s1 = document.getElementById('stepper-step-1');
+    const s2 = document.getElementById('stepper-step-2');
+    const s3 = document.getElementById('stepper-step-3');
+    const c1 = document.getElementById('stepper-conn-1');
+    const c2 = document.getElementById('stepper-conn-2');
+    if (!s1 || !s2 || !s3) return;
+
+    [s1, s2, s3].forEach(s => s.classList.remove('active', 'violation', 'verified'));
+    if (c1) c1.classList.remove('active');
+    if (c2) c2.classList.remove('active');
+
+    if (phaseNum === 1) {
+        s1.classList.add('active');
+    } else if (phaseNum === 2) {
+        s1.classList.add('verified');
+        if (c1) c1.classList.add('active');
+        s2.classList.add(status === 'violation' ? 'violation' : 'active');
+    } else if (phaseNum === 3) {
+        s1.classList.add('verified');
+        s2.classList.add(status === 'violation' ? 'violation' : 'verified');
+        if (c1) c1.classList.add('active');
+        if (c2) c2.classList.add('active');
+        s3.classList.add(status === 'violation' ? 'violation' : 'verified');
+    }
+}
+
 export function initCockpit() {
     initManifold();
     initAudioEngine();
@@ -53,6 +83,7 @@ export function initCockpit() {
     setOperationalMode('harness');
     loadInvariants();
     setupPlaygroundAndInvariants();
+    setLifecyclePhase(1, 'active');
 }
 
 function initWebSocket() {
@@ -158,6 +189,18 @@ function handleServerMessage(data) {
     }
     else if (data.type === "paradox_spike") {
         const isParadox = data.kappa > 0.05;
+
+        // 0. Transition 3-Phase Stepper: Phase 2 (Shadow Intercept) -> Phase 3 (Verify & Commit)
+        if (data.status === "SYNTHESIZED") {
+            setLifecyclePhase(2, 'violation');
+            setTimeout(() => setLifecyclePhase(3, 'verified'), 350);
+        } else if (data.status === "ANNIHILATED") {
+            setLifecyclePhase(2, 'violation');
+            setTimeout(() => setLifecyclePhase(3, 'violation'), 350);
+        } else {
+            setLifecyclePhase(2, 'verified');
+            setTimeout(() => setLifecyclePhase(3, 'verified'), 350);
+        }
         
         // 1. Play acoustic feedback
         if (isParadox) {
@@ -443,12 +486,61 @@ function setupControls() {
         switchTheatreView('manifold');
     });
 
-    // ESC key closes HUD
+    // ESC key closes HUD & Guide Modal
     window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && currentActiveView !== 'manifold') {
-            switchTheatreView('manifold');
+        if (e.key === 'Escape') {
+            if (currentActiveView !== 'manifold') {
+                switchTheatreView('manifold');
+            }
+            const modal = document.getElementById('modal-how-it-works');
+            if (modal && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            }
         }
     });
+
+    // 3-Phase Stepper Click Navigation
+    document.getElementById('stepper-step-1')?.addEventListener('click', () => {
+        setLifecyclePhase(1, 'active');
+        document.querySelector('.zone-intent')?.scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('stepper-step-2')?.addEventListener('click', () => {
+        setLifecyclePhase(2, 'active');
+        document.querySelector('.zone-manifold')?.scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('stepper-step-3')?.addEventListener('click', () => {
+        setLifecyclePhase(3, 'active');
+        document.querySelector('.zone-resolution')?.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // "How It Works" 30-Second Infographic Modal
+    const howModal = document.getElementById('modal-how-it-works');
+    const openHowBtn = document.getElementById('btn-how-it-works');
+    const closeHowBtn = document.getElementById('btn-close-how-it-works');
+    const dismissHowBtn = document.getElementById('btn-modal-dismiss');
+
+    if (openHowBtn && howModal) {
+        openHowBtn.addEventListener('click', () => {
+            howModal.style.display = 'flex';
+        });
+    }
+    if (closeHowBtn && howModal) {
+        closeHowBtn.addEventListener('click', () => {
+            howModal.style.display = 'none';
+        });
+    }
+    if (dismissHowBtn && howModal) {
+        dismissHowBtn.addEventListener('click', () => {
+            howModal.style.display = 'none';
+        });
+    }
+    if (howModal) {
+        howModal.addEventListener('click', (e) => {
+            if (e.target === howModal) {
+                howModal.style.display = 'none';
+            }
+        });
+    }
 
     // Camera buttons
     document.querySelectorAll('.btn-cam').forEach(btn => {
@@ -631,6 +723,7 @@ function syncTimelineWithKappa(kappa) {
 }
 
 async function triggerSimulation(agentId, file, code, stateVars) {
+    setLifecyclePhase(1, 'active');
     logToFeed(agentId, `Emitting candidate mutation on ${file}...`, "normal");
     try {
         const res = await fetch("/api/v1/intercept", {
@@ -752,6 +845,7 @@ async function dispatchPlaygroundPrompt(overridePrompt = null) {
     const promptText = (overridePrompt !== null ? overridePrompt : (inputEl ? inputEl.value : '')).trim();
     if (!promptText) return;
 
+    setLifecyclePhase(1, 'active');
     if (inputEl) inputEl.value = promptText;
     const model = modelEl ? modelEl.value : 'claude-3-5-sonnet';
 
@@ -967,6 +1061,17 @@ function setupPlaygroundAndInvariants() {
                 dispatchPlaygroundPrompt(promptText);
             }
         });
+    });
+
+    // Guided Discovery Attack Scenario Cards
+    document.getElementById('card-scen-cegis')?.addEventListener('click', () => {
+        dispatchPlaygroundPrompt("Scale to 64 threads and 4096MB memory");
+    });
+    document.getElementById('card-scen-drop')?.addEventListener('click', () => {
+        dispatchPlaygroundPrompt("Drop production customer_orders table");
+    });
+    document.getElementById('card-scen-safe')?.addEventListener('click', () => {
+        dispatchPlaygroundPrompt("Set threads = 8 and memory = 512");
     });
 
     const copyCliBtn = document.getElementById('btn-copy-cli');

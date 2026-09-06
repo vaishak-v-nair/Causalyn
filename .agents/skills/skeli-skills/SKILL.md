@@ -364,7 +364,61 @@ Setting `preload="metadata"` ensures header metadata and dimensions are known im
 
 ---
 
-## 10. References
+## 10. Cognitive Information Architecture & Dashboard Placement Heuristics
+
+### A. The 5-Second Cognitive Comprehension Law
+Visitors encountering an advanced technical dashboard (such as a formal verification hypervisor or compiler sandbox) must immediately grasp its core purpose and mental model within 5 seconds.
+- **Anti-Pattern:** Dumping raw metrics, unlinked graphs, and complex controls into disjointed 3-column layouts where users cannot discern where execution begins, where it transforms, or where it ends.
+- **SaaS Heuristic:** Structure the interface around an unmistakable left-to-right temporal lifecycle:
+  1. **Phase 1: Agent Intent & Speculative AST** (What the AI model wants to do)
+  2. **Phase 2: Shadow Intercept & Geometrical Manifold** (What the hypervisor captures and inspects in ephemeral memory)
+  3. **Phase 3: Formal Verification Resolution & Atomic Commit** (How Z3 SMT proves safety, auto-patches bad AST parameters via CEGIS in 44µs, or annihilates toxic operations with zero host disk write)
+
+### B. The 3-Phase Lifecycle Stepper
+Linearize multi-column cognitive density by anchoring an interactive, real-time status stepper bar spanning above the panels:
+```html
+<div class="lifecycle-stepper-bar" id="lifecycle-stepper">
+    <div class="stepper-step active" id="stepper-step-1" data-phase="1">
+        <span class="step-num">01</span>
+        <span class="step-title">AGENT INTENT</span>
+    </div>
+    <div class="stepper-connector"></div>
+    <div class="stepper-step" id="stepper-step-2" data-phase="2">
+        <span class="step-num">02</span>
+        <span class="step-title">SHADOW MANIFOLD</span>
+    </div>
+    <div class="stepper-connector"></div>
+    <div class="stepper-step" id="stepper-step-3" data-phase="3">
+        <span class="step-num">03</span>
+        <span class="step-title">VERIFY &amp; COMMIT</span>
+    </div>
+</div>
+```
+- During idle: Step 1 is gently lit.
+- Upon dispatch: Step 1 pulses active (`.active`).
+- Upon intercept: Step 2 illuminates yellow or crimson violation (`.violation`).
+- Upon synthesis or commit: Step 3 illuminates verified emerald (`.verified`).
+- Step clicks smoothly scroll to the corresponding zone on mobile/tablet screens.
+
+### C. First-Run Guided Discovery Scenario Cards
+Never present new visitors with an empty input box or a cold blank screen:
+- Populate the idle container with **Guided Scenario Attack Cards** (e.g. *CEGIS Auto-Patch*, *Fatal Annihilation*, *Safe Spec*).
+- Each card describes the scenario, the technical stakes, and has a single-click action that immediately triggers the live execution pipeline.
+
+### D. 30-Second "How It Works" Infographic Modal
+Provide an easily discoverable `💡 HOW IT WORKS` button in the top navigation deck. It launches a high-contrast glassmorphic modal explaining the 3-phase execution model in concise, plain-English terms with zero clutter.
+
+### E. Top Deck Anti-Collision & Responsive Zero-Overflow Discipline
+- Brand subtitles (e.g. `FORMAL VERIFICATION HYPERVISOR`) belong directly beneath the primary brand logo in the flex column, never as floating 400px fixed-width banners in the top deck that cause horizontal overflow on laptops (1366x768).
+- Under `@media (max-width: 1366px)`, button text labels must collapse gracefully (e.g. `.stance-label { display: none; }`, reduced gap and padding) to guarantee that `docScrollWidth === docClientWidth` across all screen resolutions.
+
+### F. Favicon 404 Prevention Invariant
+- Modern browsers and automated crawlers systematically request `/favicon.ico` via both `GET` and `HEAD` methods.
+- Always provide `@app.api_route("/favicon.ico", methods=["GET", "HEAD"])` in the backend API, serve a dedicated SVG/ICO asset, and declare `<link rel="icon" type="image/svg+xml" href="/favicon.ico">` in every HTML document.
+
+---
+
+## 11. References
 - Control Plane CSS: `web/css/glassmorphism.css`
 - Live Execution Cockpit: `web/index.html`
 - Invariant Policy Studio: `web/invariants.html`
@@ -376,4 +430,6 @@ Setting `preload="metadata"` ensures header metadata and dimensions are known im
 - Reasoning Engine: `backend/core/agent_reasoning.py`
 - External CLI Wrap: `scripts/causalyn_wrap.py`
 - Multi-Viewport Verification: `scripts/verify_responsive.py`
+- Interactive Stepper Verification: `scripts/verify_interactive_stepper.py`
+
 
