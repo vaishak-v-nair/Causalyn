@@ -191,9 +191,19 @@
 
     <!-- Policy Studio Controller Script -->
     <script type="module">
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         async function loadInvariants() {
             try {
-                const res = await fetch("http://127.0.0.1:8000/api/v1/invariants");
+                const res = await fetch("/api/v1/invariants");
                 const data = await res.json();
                 renderTable(data.invariants || []);
             } catch (err) {
@@ -235,22 +245,22 @@
                 tr.innerHTML = `
                     <td>
                         <label class="inv-toggle" title="Toggle active status">
-                            <input type="checkbox" ${inv.enabled ? 'checked' : ''} data-id="${inv.id}">
+                            <input type="checkbox" ${inv.enabled ? 'checked' : ''} data-id="${escapeHtml(inv.id)}">
                             <span class="inv-slider"></span>
                         </label>
                     </td>
                     <td>
-                        <strong style="color: var(--text-primary); font-family: 'JetBrains Mono';">${inv.name || inv.id}</strong>
-                        <div style="font-size: 9px; color: var(--text-muted);">${inv.description || ''}</div>
+                        <strong style="color: var(--text-primary); font-family: 'JetBrains Mono';">${escapeHtml(inv.name || inv.id)}</strong>
+                        <div style="font-size: 9px; color: var(--text-muted);">${escapeHtml(inv.description || '')}</div>
                     </td>
                     <td>
-                        <span class="inv-badge ${kind}">${kind.toUpperCase()}</span>
+                        <span class="inv-badge ${escapeHtml(kind)}">${escapeHtml(kind.toUpperCase())}</span>
                     </td>
                     <td style="font-family: 'JetBrains Mono'; color: var(--cyan-accent); word-break: break-all;">
-                        ${exprDisplay}
+                        ${escapeHtml(exprDisplay)}
                     </td>
                     <td>
-                        ${!isBuiltin ? `<button class="btn-del-rule" data-id="${inv.id}">DELETE</button>` : `<span style="font-size: 10px; color: var(--text-muted);">BUILTIN</span>`}
+                        ${!isBuiltin ? `<button class="btn-del-rule" data-id="${escapeHtml(inv.id)}">DELETE</button>` : `<span style="font-size: 10px; color: var(--text-muted);">BUILTIN</span>`}
                     </td>
                 `;
 
@@ -258,7 +268,7 @@
                 const checkbox = tr.querySelector('input[type="checkbox"]');
                 if (checkbox) {
                     checkbox.addEventListener('change', async () => {
-                        await fetch(`http://127.0.0.1:8000/api/v1/invariants/${encodeURIComponent(inv.id)}/toggle`, { method: "PATCH" });
+                        await fetch(`/api/v1/invariants/${encodeURIComponent(inv.id)}/toggle`, { method: "PATCH" });
                         loadInvariants();
                     });
                 }
@@ -268,7 +278,7 @@
                 if (delBtn) {
                     delBtn.addEventListener('click', async () => {
                         if (confirm(`Delete custom rule '${inv.name}'?`)) {
-                            await fetch(`http://127.0.0.1:8000/api/v1/invariants/${encodeURIComponent(inv.id)}`, { method: "DELETE" });
+                            await fetch(`/api/v1/invariants/${encodeURIComponent(inv.id)}`, { method: "DELETE" });
                             loadInvariants();
                         }
                     });
@@ -300,7 +310,7 @@
             };
 
             try {
-                const res = await fetch("http://127.0.0.1:8000/api/v1/invariants", {
+                const res = await fetch("/api/v1/invariants", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)

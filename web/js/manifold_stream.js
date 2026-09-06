@@ -1,4 +1,5 @@
-import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+// Prefer local bundled Three.js for offline resilience, fallback to CDN if needed
+const THREE = window.THREE || (await import('https://cdn.skypack.dev/three@0.136.0'));
 
 let scene, camera, renderer, mesh, wireframeMesh, particles, epicenterLight;
 let kappaTarget = 0.0;

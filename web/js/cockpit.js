@@ -56,7 +56,10 @@ export function initCockpit() {
 }
 
 function initWebSocket() {
-    const wsUrl = `ws://${window.location.hostname || '127.0.0.1'}:8000/ws/continuum`;
+    const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsPort = window.location.port ? `:${window.location.port}` : '';
+    const wsHost = window.location.hostname || '127.0.0.1';
+    const wsUrl = `${wsProto}//${wsHost}${wsPort}/ws/continuum`;
     
     try {
         ws = new WebSocket(wsUrl);
@@ -630,7 +633,7 @@ function syncTimelineWithKappa(kappa) {
 async function triggerSimulation(agentId, file, code, stateVars) {
     logToFeed(agentId, `Emitting candidate mutation on ${file}...`, "normal");
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/intercept", {
+        const res = await fetch("/api/v1/intercept", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -668,7 +671,7 @@ async function triggerSimulation(agentId, file, code, stateVars) {
 async function triggerSwarmBurst() {
     logToFeed("LAMPORT-BUS", "Emitting concurrent multi-agent mutations...", "normal");
     try {
-        await fetch("http://127.0.0.1:8000/api/v1/swarm/reconcile", {
+        await fetch("/api/v1/swarm/reconcile", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -773,7 +776,7 @@ async function dispatchPlaygroundPrompt(overridePrompt = null) {
     logToFeed(model.toUpperCase(), `[PROMPT] "${promptText}"`, "normal");
 
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/prompt/dispatch", {
+        const res = await fetch("/api/v1/prompt/dispatch", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -800,7 +803,7 @@ async function dispatchPlaygroundPrompt(overridePrompt = null) {
 // ==========================================================================
 async function loadInvariants() {
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/invariants");
+        const res = await fetch("/api/v1/invariants");
         const data = await res.json();
         if (data && data.invariants) {
             renderInvariants(data.invariants);
@@ -874,7 +877,7 @@ function renderInvariants(invariants) {
 
 async function toggleInvariant(invId) {
     try {
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/invariants/${encodeURIComponent(invId)}/toggle`, {
+        const res = await fetch(`/api/v1/invariants/${encodeURIComponent(invId)}/toggle`, {
             method: "PATCH"
         });
         const data = await res.json();
@@ -886,7 +889,7 @@ async function toggleInvariant(invId) {
 
 async function deleteInvariant(invId) {
     try {
-        await fetch(`http://127.0.0.1:8000/api/v1/invariants/${encodeURIComponent(invId)}`, {
+        await fetch(`/api/v1/invariants/${encodeURIComponent(invId)}`, {
             method: "DELETE"
         });
         logToFeed("INVARIANT-REGISTRY", `Custom rule '${invId}' removed`, "safe");
@@ -923,7 +926,7 @@ async function createCustomInvariant() {
     };
 
     try {
-        const res = await fetch("http://127.0.0.1:8000/api/v1/invariants", {
+        const res = await fetch("/api/v1/invariants", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)

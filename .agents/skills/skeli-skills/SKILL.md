@@ -261,13 +261,119 @@ When addressing UI congestion, clutter, or information density:
 
 ---
 
-## 8. References
+## 8. The Responsive Multi-Viewport Invariant Rule (SRRL Viewport Gates)
+
+Every web application and dashboard governed by Skeli-Skills MUST satisfy strict multi-viewport integrity:
+
+### A. The Zero Horizontal Overflow Invariant
+- **The Law:** Under NO circumstances may any page (`/`, `/invariants`, `/proofs`) trigger a window-level horizontal scrollbar (`scrollWidth > clientWidth`).
+- **Audit Requirement:** Verification must be conducted across all standard device viewports:
+  1. Desktop: `1920x1080`
+  2. Small Desktop / Laptop: `1366x768`
+  3. Tablet Portrait: `768x1024`
+  4. Mobile Portrait: `390x844`
+- **Global CSS Safeguard:**
+  ```css
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden !important;
+  }
+  ```
+
+### B. Adaptive Viewport Hierarchy
+1. **Desktop ($> 1200\text{px}$):**
+   - Fixed-height HUD (`height: calc(100vh - 144px); min-height: 0; overflow: hidden;`).
+   - 3-column proportional grid (`310px 1fr 310px`), with internal scrollable regions inside panels.
+2. **Tablet Landscape & Medium Screens ($768\text{px} - 1100\text{px}$):**
+   - Unconstrain height: switch `body` and `.app-container` from `overflow: hidden; height: 100vh;` to `overflow-y: auto; height: auto; min-height: 100vh;`.
+   - Stack `.cockpit-grid` vertically in prioritized order:
+     - **Order 1:** Stage Panel (Three.js 3D canvas viewport maintained at `min-height: 440px`).
+     - **Order 2:** Zone 1 Multi-Agent Swarm Stream (`min-height: 360px`).
+     - **Order 3:** Zone 3 Ground Truth Ledger & Invariant Monitor (`min-height: 360px`).
+3. **Mobile ($< 768\text{px}$):**
+   - Top deck wraps cleanly: brand on top, nav links scrolling horizontally with `-webkit-overflow-scrolling: touch`, stance selectors stacked.
+   - Command playground: prompt input expands to 100% width, run button occupies full-width touch target ($44\text{px}$ minimum height).
+   - Scenario chips scroll horizontally in an edge-to-edge kinetic row.
+   - Data tables (`.policy-table`) reside in isolated touch-scrollable wrappers (`.policy-table-container { overflow-x: auto; max-width: 100%; }`) while preserving zero page-level overflow.
+
+### C. The Page Scrollability Invariant (`.page-scrollable`)
+When creating subpages with extensive academic proofs, video archives, or expansive tabular registries:
+- The body tag MUST declare `<body class="page-scrollable">`.
+- Root container MUST declare `<div class="app-container page-container">`.
+- CSS must enforce:
+  ```css
+  body.page-scrollable {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100vh;
+  }
+  .page-container {
+    height: auto !important;
+    min-height: 100vh;
+    overflow-y: visible;
+    pointer-events: auto;
+  }
+  ```
+
+---
+
+## 9. Offline Self-Containment, Protocol Agnosticism & HTML Sanitization
+
+### A. Zero External CDN Dependency (Air-Gapped & Offline Resilience)
+- **Failure Mode:** Importing essential visualization libraries directly from public CDNs (e.g. `import * as THREE from 'https://cdn.skypack.dev/...'`) causes instantaneous white-screen failures if the client is offline, air-gapped, behind corporate proxies, or when the CDN experiences downtime.
+- **SRRL Rule:** Always bundle vendor libraries locally (e.g., `web/static/three.min.js`).
+- **Progressive Fallback Pattern:**
+  ```javascript
+  // Prefer local bundled distribution, fallback to CDN only if local is absent
+  const THREE = window.THREE || (await import('https://cdn.skypack.dev/three@0.136.0'));
+  ```
+
+### B. Mathematical Expression HTML Sanitization
+- **Failure Mode:** When rendering dynamic invariant rules, user input strings, or SMT formulas into tables via `tr.innerHTML = \`...\${expr}...\``, any expression containing mathematical inequalities like `threads <= 16` or `x < y` has its `<` parsed as an unclosed HTML tag. The browser breaks the DOM node, drops following cells, and displays corrupted empty rows.
+- **SRRL Rule:** ALWAYS sanitize all dynamic expressions and strings before `innerHTML` interpolation:
+  ```javascript
+  function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+  }
+  ```
+
+### C. Port & Protocol Dynamic Resolution
+- **Failure Mode:** Hardcoding `http://127.0.0.1:8000` or `ws://127.0.0.1:8000` breaks when accessed via `localhost`, custom `--port`, Docker containers, ngrok tunnels, or TLS reverse proxies (`https`/`wss`).
+- **SRRL Rule:** Always compute endpoints dynamically:
+  ```javascript
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host; // includes port if non-standard
+  const wsUrl = `${protocol}//${host}/ws/continuum`;
+  // REST calls: Use relative paths
+  const res = await fetch('/api/v1/intercept', { ... });
+  ```
+
+### D. Video Asset Optimization
+Multi-video research portals must never eager-load heavy video files on initial page load:
+```html
+<video class="axiom-video-player" src="..." controls loop muted playsinline preload="metadata"></video>
+```
+Setting `preload="metadata"` ensures header metadata and dimensions are known immediately for zero-shift layout calculation without saturating browser memory or network bandwidth.
+
+---
+
+## 10. References
 - Control Plane CSS: `web/css/glassmorphism.css`
 - Live Execution Cockpit: `web/index.html`
 - Invariant Policy Studio: `web/invariants.html`
 - Mathematical Theory & Proofs: `web/proofs.html`
 - Cockpit JS Logic: `web/js/cockpit.js`
+- 3D Symplectic Manifold: `web/js/manifold_stream.js`
+- Local Three.js Bundle: `web/three.min.js`
 - Invariant Registry: `backend/core/invariant_registry.py`
 - Reasoning Engine: `backend/core/agent_reasoning.py`
 - External CLI Wrap: `scripts/causalyn_wrap.py`
+- Multi-Viewport Verification: `scripts/verify_responsive.py`
 
