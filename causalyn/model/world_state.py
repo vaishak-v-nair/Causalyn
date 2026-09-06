@@ -233,6 +233,18 @@ class WorldStateManager:
         self.state_history: List[Dict[str, Any]] = []  # store snapshots of (data, file_system)
         self.snapshots: Dict[str, Dict[str, Any]] = {}  # named snapshots
 
+    @property
+    def file_system(self) -> Dict[str, Any]:
+        """Direct access to internal file system mapping."""
+        return self._file_system
+
+    def reset(self):
+        """Reset world state manager cache, history, and snapshots."""
+        self._file_system.clear()
+        self.data.clear()
+        self.state_history.clear()
+        self.snapshots.clear()
+
     def _load_filesystem(self):
         """Load all files under root_path into the file_system cache."""
         self._file_system.clear()

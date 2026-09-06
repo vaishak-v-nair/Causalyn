@@ -26,6 +26,17 @@ from causalyn.api.websocket_manager import ws_manager, trigger_semantic_interfer
 from causalyn.config import get_settings
 from causalyn.storage.pipeline_store import PipelineStore
 
+gateway = ws_manager
+gateway.broadcast_state = ws_manager.broadcast_json
+
+async def trigger_semantic_interference(kappa_val: float, violation: str = "") -> None:
+    payload = {
+        "event": "PARADOX_DETECTED" if kappa_val > 0 else "NULL_SPACE_CONFIRMED",
+        "kappa": kappa_val,
+        "decision": "DENY" if kappa_val > 0 else "ALLOW",
+        "violation": violation,
+    }
+    await ws_manager.broadcast_json(payload)
 
 ROOT = Path(__file__).parent
 WEB_ROOT = ROOT / "web"
@@ -146,6 +157,7 @@ async def request_context(request: Request, call_next):
         return response
 
 @api.websocket("/ws")
+@api.websocket("/ws/continuum")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
     try:

@@ -9,6 +9,11 @@ class TestCausalynApi(unittest.TestCase):
     def setUpClass(cls):
         cls.client = TestClient(app.api)
 
+    def setUp(self):
+        app.WORLD_STATE.reset()
+        app.WORLD_STATE.set_file_content("/protected/config.json", {"debug": True, "secret_key": "redacted"})
+        app.WORLD_STATE.set_file_content("/app/public/settings.json", {"feature_flag": False, "version": "1.0.0"})
+
     @classmethod
     def tearDownClass(cls):
         cls.client.close()

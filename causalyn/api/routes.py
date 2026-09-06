@@ -372,7 +372,7 @@ def create_router(
         }
 
     @router.post("/vpsn/evaluate")
-    def evaluate_vpsn(request: EvaluateVPSNRequest) -> dict[str, Any]:
+    async def evaluate_vpsn(request: EvaluateVPSNRequest) -> dict[str, Any]:
         """
         Execute candidate code through the Mathematical Kernel (kappa Engine),
         Z3 SMT Solver, and Ambient Fabric with the Vaishak Operator.
@@ -424,15 +424,24 @@ def create_router(
 
         # Broadcast real-time execution state directly to GPU over WebSocket
         try:
-            import app as main_app
-            main_app.trigger_semantic_interference_sync(
-                kappa_val=total_kappa,
-                violation=all_violations[0] if all_violations else "Semantic Null-Space Admitted",
-            )
+            from .websocket_manager import ws_manager
+            event_name = "PARADOX_DETECTED" if total_kappa > 0 else "NULL_SPACE_CONFIRMED"
+            decision_name = "DENY" if total_kappa > 0 else "ALLOW"
+            violation_msg = all_violations[0] if all_violations else "Semantic Null-Space Admitted"
+            ws_payload = {
+                "type": "paradox_spike" if total_kappa > 0 else "equilibrium",
+                "event": event_name,
+                "decision": decision_name,
+                "kappa": total_kappa,
+                "violation": violation_msg,
+            }
+            await ws_manager.broadcast_json(ws_payload)
         except Exception:
             pass
 
         return {
+            "event": "PARADOX_DETECTED" if total_kappa > 0 else "NULL_SPACE_CONFIRMED",
+            "decision": "DENY" if total_kappa > 0 else "ALLOW",
             "paradox_index": total_kappa,
             "kappa": total_kappa,
             "vaishak_operator": operator_status,

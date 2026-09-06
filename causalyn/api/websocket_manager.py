@@ -35,8 +35,12 @@ def trigger_semantic_interference_sync(kappa_val: float, violation: str):
     Synchronous wrapper to trigger async broadcast.
     Instantly broadcasts the Paradox Spike to the WebGL frontend over WebSocket.
     """
+    event = "PARADOX_DETECTED" if kappa_val > 0 else "NULL_SPACE_CONFIRMED"
+    decision = "DENY" if kappa_val > 0 else "ALLOW"
     payload = {
         "type": "paradox_spike" if kappa_val > 0 else "equilibrium",
+        "event": event,
+        "decision": decision,
         "kappa": kappa_val,
         "violation": violation
     }

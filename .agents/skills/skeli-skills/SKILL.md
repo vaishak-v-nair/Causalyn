@@ -418,7 +418,52 @@ Provide an easily discoverable `💡 HOW IT WORKS` button in the top navigation 
 
 ---
 
-## 11. References
+## 11. High-Throughput Pressure Testing, DOM Resilience & Stress Invariants
+
+Any mission-critical, AI-orchestrated control plane must be impervious to traffic storms, adversarial payloads, and unbounded DOM growth. The following heuristics and architectural invariants must be enforced:
+
+### A. Bounded DOM Node Invariant (Preventing UI Memory Leaks)
+Under high-frequency WebSocket event storms (e.g. 50–100 telemetry packets/sec), appending nodes indefinitely causes catastrophic browser memory spikes, garbage collection jank, and eventual tab crashes:
+- **Terminal Event Feeds**: Strictly cap real-time terminal and audit log containers to a fixed maximum (e.g., 30 items). Always prune overflow nodes from the tail:
+  ```javascript
+  if (feed.children.length > 30) {
+      feed.lastElementChild.remove();
+  }
+  ```
+- **Cryptographic Ledgers & Hash Feeds**: Cap historical ledger cards to a fixed maximum (e.g., 5 items):
+  ```javascript
+  if (list.children.length > 5) {
+      list.lastElementChild.remove();
+  }
+  ```
+- **Telemetry Throttling**: Decouple high-rate incoming socket packets from DOM rendering using `requestAnimationFrame` or a fixed batching cadence so the main thread never drops below 60fps.
+
+### B. High-Frequency UI Fuzzing & Rapid State Transitions
+Frontends must withstand hostile, rapid-fire user interactions without state desynchronization or uncaught exceptions:
+- **Rapid Stance & Mode Switching**: Fast toggling between operational modes (e.g. Autobahn vs. Defensive Hypervisor) must cleanly update active button classes and recalculate policy metrics without visual glitches.
+- **Camera & Manifold Transformations**: Rapid perspective switching (Default Manifold, High-Angle Isometric, Top-Down Symplectic) must smoothly interpolate Three.js camera coordinates without throwing WebGL context loss or matrix inversion errors.
+- **Modal Dialog Lifecycle**: Rapid open/close cycles on modals (e.g., Guide and Infographic dialogs) must correctly update `aria-hidden`, manage focus trap, and restore viewport scrolling with zero backdrop freeze.
+- **Timeline Scrubber Seeking**: Interactive temporal scrubbers must handle rapid, non-monotonic value seeks without race conditions in shadow execution playback.
+
+### C. Concurrent Multi-Tab WebSocket Continuum
+- Multiple browser tabs connected to the same backend WebSocket endpoint (e.g. `/ws/continuum`) must operate independently and receive streaming telemetry simultaneously.
+- Broadcast dispatches from any single client session must stream cleanly across all active connections without blocking backend event loops or dropping packets.
+
+### D. Backend Concurrency & Throughput Benchmarks
+The backend verification engine, CRDT bus, and SMT solver must be validated against four distinct stress vectors:
+1. **Burst Intercept Concurrency**: Intercept 120+ burst requests at concurrency 30 with 0% 500-errors, sub-second wallclock execution, and fail-closed annihilation on hazardous code.
+2. **Swarm CRDT Vector Clock Burst**: Process 60+ batches across 20 concurrent threads merging 900+ atomic operations, verifying 100% deterministic and monotonic vector clocks (>2,400 ops/sec).
+3. **Adversarial Fuzzing Defense**: Intercept 8 high-risk boundary attacks (unclosed syntax, raw binary shell scripts, path traversal escapes, extreme negative integers, giant numbers for Z3 overflow defense, 50KB injected comment buffers, zero-variable state, schema pollution) with instant containment.
+4. **WebSocket Stream Multiplexing**: Sustain 25+ simultaneous WebSocket connections under continuous telemetry broadcast with 100% packet delivery and zero drops.
+
+### E. Integration Test Isolation Discipline
+- When testing stateful backends (e.g., with FastAPI `TestClient`), relying solely on `setUpClass()` causes insidious test order dependencies where mutating tests (such as pipeline intent commits) pollute the state of subsequent assertions.
+- Always implement per-test cleanup (`setUp(self)`) that calls `app.WORLD_STATE.reset()` and re-seeds canonical fixture files before every individual test method.
+- Route handlers that broadcast real-time state over WebSockets should be declared as `async def` to execute on the main event loop and directly await broadcast delivery, avoiding cross-thread event loop dispatch deadlocks.
+
+---
+
+## 12. References
 - Control Plane CSS: `web/css/glassmorphism.css`
 - Live Execution Cockpit: `web/index.html`
 - Invariant Policy Studio: `web/invariants.html`
@@ -431,5 +476,7 @@ Provide an easily discoverable `💡 HOW IT WORKS` button in the top navigation 
 - External CLI Wrap: `scripts/causalyn_wrap.py`
 - Multi-Viewport Verification: `scripts/verify_responsive.py`
 - Interactive Stepper Verification: `scripts/verify_interactive_stepper.py`
+- Web Cockpit Pressure Test Suite: `scripts/pressure_test_web.py`
+- Backend Pressure & Stress Benchmark Suite: `tests/stress/run_all_pressure_tests.py`
 
 
