@@ -20,8 +20,11 @@ VIEWPORTS = [
 
 PAGES = [
     {"path": "/", "name": "Cockpit"},
+    {"path": "/overview", "name": "Platform Overview"},
     {"path": "/invariants", "name": "Policy Studio"},
-    {"path": "/proofs", "name": "Theory & Proofs"}
+    {"path": "/proofs", "name": "Theory & Proofs"},
+    {"path": "/audit", "name": "Audit Ledger"},
+    {"path": "/swarm", "name": "Swarm Bus"},
 ]
 
 async def verify_all():

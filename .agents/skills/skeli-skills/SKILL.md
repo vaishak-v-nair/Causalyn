@@ -463,9 +463,40 @@ The backend verification engine, CRDT bus, and SMT solver must be validated agai
 
 ---
 
-## 12. References
+---
+
+## 12. Multi-Page Anti-Congestion Architecture & Dedicated Workspaces
+
+Monolithic single-page HUDs that cram high-level architecture explanations, 3D runtime manifolds, formal theorem proofs, multi-agent vector clocks, and compliance audit logs into a single viewport suffer from cognitive paralysis and responsive collapse. The SRRL Multi-Page Decongestion Protocol enforces domain-separated surfaces:
+
+### A. Dedicated Workspace Topology
+Split monolithic applications into focused, high-clarity pages sharing a unified cyber-industrial navigation top deck:
+1. **`⚡ Cockpit` (`/` & `/cockpit`)**: Exclusively focused on live runtime telemetry, Three.js Symplectic Manifold visualization, active stance toggling (Autobahn vs. Defensive), agent execution interception, and real-time shadow execution.
+2. **`🌐 Overview` (`/overview`)**: High-level platform architecture guide, 3-Phase Acausal Model visualizer (Pre-Execution Interception, Symplectic Phase Collapse, Monotonic Ground Truth), problem/solution contrast cards, and benchmark tables.
+3. **`🛡️ Policy Studio` (`/invariants`)**: Interactive Z3 SMT constraint authoring, numerical threshold tuning, semantic pattern rules, and live invariant registry toggles.
+4. **`📐 Theory & Proofs` (`/proofs`)**: Formal mathematical foundation, Hamiltonian phase space conservation, Symplectic Ricci flow formulations, and 3B1B Manim animated video proofs.
+5. **`🔒 Audit Ledger` (`/audit`)**: Regulatory governance vault enforcing EU AI Act (Regulation 2024/1689 Article 10) compliance, searchable cryptographic SHA-256 commit hash tables, and JSON audit log export.
+6. **`🐝 Swarm Bus` (`/swarm`)**: Multi-agent distributed coordination hub displaying real-time Lamport Vector Clocks, CRDT convergence metrics, transparent reverse proxy (:8000) listener status, and interactive CLI wrappers.
+
+### B. Responsive Top-Deck Navigation Discipline
+When extending top navigation with multi-page routes, layout collapse on mid-sized screens (e.g. 1366px laptops) is a common failure mode:
+- **Responsive Flex Shrink**: Set `flex-shrink: 1; min-width: 0;` on `.top-nav-links` with `overflow-x: auto; scrollbar-width: none;`.
+- **Selective Density Culling**: In `@media (max-width: 1440px)`, hide redundant brand subtitles (`.brand-subtitle`) and diagnostic badges (`.kernel-ping-stat`, `.brand-badge`) to maintain high-density information architecture without clipping action controls.
+- **Strict Zero-Overflow Verification**: Enforce programmatic validation asserting `scrollWidth === clientWidth` and `bodyScrollWidth === bodyClientWidth` across all 6 pages at 1920px (Desktop), 1366px (Laptop), 768px (Tablet), and 390px (Mobile).
+
+### C. Test Harness ID Backward Compatibility Invariant
+During UI refactoring and page decomposition:
+- **Never Alter or Drop Existing DOM IDs**: Automated test runners (Playwright, Puppeteer, stress fuzzers) bind directly to canonical selectors (`#btn-stance-defensive`, `#btn-stance-autobahn`, `.btn-cam`, `#btn-how-it-works`, `#timeline-range`, `#card-scen-safe`, `#terminal-feed`, `#hash-list`).
+- When delegating deep logs to dedicated pages (e.g. `/audit`), retain bounded, real-time preview feeds in the primary Cockpit to guarantee telemetry streams and automated pressure tests continue passing with zero regressions.
+
+---
+
+## 13. References
 - Control Plane CSS: `web/css/glassmorphism.css`
 - Live Execution Cockpit: `web/index.html`
+- Platform Overview & Architecture: `web/overview.html`
+- Cryptographic Audit Ledger: `web/audit.html`
+- Swarm Bus & Transparent Proxy: `web/swarm.html`
 - Invariant Policy Studio: `web/invariants.html`
 - Mathematical Theory & Proofs: `web/proofs.html`
 - Cockpit JS Logic: `web/js/cockpit.js`
@@ -474,9 +505,10 @@ The backend verification engine, CRDT bus, and SMT solver must be validated agai
 - Invariant Registry: `backend/core/invariant_registry.py`
 - Reasoning Engine: `backend/core/agent_reasoning.py`
 - External CLI Wrap: `scripts/causalyn_wrap.py`
-- Multi-Viewport Verification: `scripts/verify_responsive.py`
+- Multi-Page Responsive Verification: `scripts/verify_responsive.py`
 - Interactive Stepper Verification: `scripts/verify_interactive_stepper.py`
 - Web Cockpit Pressure Test Suite: `scripts/pressure_test_web.py`
 - Backend Pressure & Stress Benchmark Suite: `tests/stress/run_all_pressure_tests.py`
+
 
 

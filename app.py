@@ -207,28 +207,67 @@ api.include_router(create_router(BACKEND_SERVICE, context_to_dict, prefix="/v1")
 
 
 @api.get("/")
+@api.get("/cockpit")
 def index() -> FileResponse:
-        return FileResponse(WEB_ROOT / "index.html")
+    return FileResponse(WEB_ROOT / "index.html")
+
+
+@api.get("/overview")
+def overview_page() -> FileResponse:
+    p = WEB_ROOT / "overview.html"
+    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+
+
+@api.get("/invariants")
+def invariants_page() -> FileResponse:
+    p = WEB_ROOT / "invariants.html"
+    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+
+
+@api.get("/proofs")
+def proofs_page() -> FileResponse:
+    p = WEB_ROOT / "proofs.html"
+    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+
+
+@api.get("/audit")
+def audit_page() -> FileResponse:
+    p = WEB_ROOT / "audit.html"
+    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+
+
+@api.get("/swarm")
+def swarm_page() -> FileResponse:
+    p = WEB_ROOT / "swarm.html"
+    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
 
 
 @api.get("/{asset:path}")
 def asset(asset: str) -> FileResponse:
-        # Allow serving videos from the assets folder
-        if asset.startswith("assets/"):
-            asset_path = WEB_ROOT / asset
-            if not asset_path.exists() or not asset.endswith(".mp4"):
-                raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
-            return FileResponse(asset_path, media_type="video/mp4")
-            
-        allowed = {
-            "app.js": "text/javascript",
-            "styles.css": "text/css",
-            "three.min.js": "text/javascript",
-            "vaishak_canvas.js": "text/javascript",
-        }
-        if asset not in allowed:
+    # Allow serving videos and svg from assets folder
+    if asset.startswith("assets/"):
+        asset_path = WEB_ROOT / asset
+        if not asset_path.exists() or not asset_path.is_file():
             raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
-        return FileResponse(WEB_ROOT / asset, media_type=allowed[asset])
+        media_type = "video/mp4" if asset.endswith(".mp4") else "image/svg+xml" if asset.endswith(".svg") else None
+        return FileResponse(asset_path, media_type=media_type)
+
+    if asset.startswith("css/") or asset.startswith("js/") or asset.startswith("static/"):
+        file_path = WEB_ROOT / asset
+        if file_path.exists() and file_path.is_file():
+            media_type = "text/css" if asset.endswith(".css") else "text/javascript" if asset.endswith(".js") else None
+            return FileResponse(file_path, media_type=media_type)
+        
+    allowed = {
+        "app.js": "text/javascript",
+        "styles.css": "text/css",
+        "three.min.js": "text/javascript",
+        "vaishak_canvas.js": "text/javascript",
+        "favicon.ico": "image/x-icon",
+    }
+    if asset not in allowed:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
+    return FileResponse(WEB_ROOT / asset, media_type=allowed[asset])
 
 
 def main() -> None:

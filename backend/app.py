@@ -347,11 +347,33 @@ if web_dir.exists():
     app.mount("/static", StaticFiles(directory=str(web_dir)), name="static")
 
     @app.get("/")
+    @app.get("/cockpit")
     async def serve_dashboard():
         index_file = web_dir / "index.html"
         if index_file.exists():
             return FileResponse(index_file)
         return {"message": "Web dashboard not found"}
+
+    @app.get("/overview")
+    async def serve_overview():
+        overview_file = web_dir / "overview.html"
+        if overview_file.exists():
+            return FileResponse(overview_file)
+        return FileResponse(web_dir / "index.html")
+
+    @app.get("/audit")
+    async def serve_audit():
+        audit_file = web_dir / "audit.html"
+        if audit_file.exists():
+            return FileResponse(audit_file)
+        return FileResponse(web_dir / "index.html")
+
+    @app.get("/swarm")
+    async def serve_swarm():
+        swarm_file = web_dir / "swarm.html"
+        if swarm_file.exists():
+            return FileResponse(swarm_file)
+        return FileResponse(web_dir / "index.html")
 
     @app.get("/proofs")
     async def serve_proofs():
