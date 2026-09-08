@@ -11,8 +11,11 @@ import sys
 import math
 from pathlib import Path
 
-# Ensure backend directory is in sys.path for relative core imports
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Ensure backend directory and repository root are in sys.path
+backend_dir = Path(__file__).resolve().parent
+repo_root = backend_dir.parent
+sys.path.insert(0, str(backend_dir))
+sys.path.insert(0, str(repo_root))
 
 from core.ambient_fabric import AmbientFabric
 from core.cegar_synthesizer import AcausalSynthesizer

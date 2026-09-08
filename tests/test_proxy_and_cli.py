@@ -128,5 +128,37 @@ class TestProxyAndCLISuite(unittest.TestCase):
         self.assertEqual(exit_code, 0)
 
 
+    def test_cli_main_verify_clean_file(self):
+        """Verify CLI 'verify' subcommand succeeds on clean python files."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            clean_file = os.path.join(td, "clean.py")
+            with open(clean_file, "w") as f:
+                f.write("def add(a: int, b: int) -> int:\n    return a + b\n")
+            exit_code = cli_main(["verify", clean_file])
+            self.assertEqual(exit_code, 0)
+
+    def test_cli_main_verify_hazardous_rce(self):
+        """Verify CLI 'verify' subcommand flags dangerous eval/exec calls."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            rce_file = os.path.join(td, "rce.py")
+            with open(rce_file, "w") as f:
+                f.write("def run_untrusted(cmd):\n    eval(cmd)\n")
+            exit_code = cli_main(["verify", rce_file])
+            self.assertEqual(exit_code, 1)
+
+    def test_cli_main_verify_syntax_error(self):
+        """Verify CLI 'verify' subcommand flags invalid Python syntax."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            bad_syntax_file = os.path.join(td, "syntax.py")
+            with open(bad_syntax_file, "w") as f:
+                f.write("def broken() : return {unclosed\n")
+            exit_code = cli_main(["verify", bad_syntax_file])
+            self.assertEqual(exit_code, 1)
+
+
 if __name__ == "__main__":
     unittest.main()
+

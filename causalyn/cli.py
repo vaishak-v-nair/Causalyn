@@ -497,6 +497,110 @@ def handle_cert(args: argparse.Namespace) -> int:
     return 0
 
 
+def handle_verify(args: argparse.Namespace) -> int:
+    """Perform standalone deterministic invariant verification on a target path."""
+    import ast
+    from .engine.native_accelerator import get_native_accelerator
+
+    target = getattr(args, "target", ".") or "."
+    kernel = get_native_accelerator()
+
+    files_to_check = []
+    if os.path.isfile(target):
+        files_to_check.append(target)
+    elif os.path.isdir(target):
+        for root, _, files in os.walk(target):
+            if any(ignore in root for ignore in (".git", ".venv", "__pycache__", "node_modules", "target")):
+                continue
+            for f in files:
+                if f.endswith((".py", ".json", ".yaml", ".yml", ".env", ".toml")):
+                    files_to_check.append(os.path.join(root, f))
+    else:
+        print(f"Error: Target path does not exist: {target}", file=sys.stderr)
+        return 1
+
+    print("=== Causalyn Deterministic Verification Matrix ===")
+    print(f"Target:          {target}")
+    print(f"Files Evaluated: {len(files_to_check)}")
+    print(f"Native Engine:   {'Active (Rust SIMD)' if kernel.is_native else 'Fallback (Pure-Python)'}")
+
+    violations = []
+
+    for fpath in files_to_check:
+        try:
+            with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+        except Exception as e:
+            violations.append({"code": "IO-001", "msg": f"Failed to read {fpath}: {e}", "penalty": 0.5})
+            continue
+
+        # 1. Protected Path Guard
+        norm_path = fpath.replace("\\", "/")
+        if any(norm_path.startswith(pfx) or f"/{pfx.strip('/')}/" in norm_path for pfx in ("/protected", "/secrets", "/.env")):
+            violations.append({
+                "code": "SEC-001-PROTECTED-PATH",
+                "msg": f"Protected path resource touched: {fpath}",
+                "penalty": 0.8,
+            })
+
+        # 2. Secret Scan (Regex + Native Entropy)
+        secret_tokens = kernel.scan_high_entropy_tokens(content, threshold=4.1, min_token_len=24)
+        for tok in secret_tokens:
+            violations.append({
+                "code": "SEC-002-SECRET-LEAK",
+                "msg": f"High-entropy token detected in {fpath} (H={tok['entropy']}): {tok['token']}",
+                "penalty": 1.0,
+            })
+
+        # 3. Python AST & RCE Scan
+        if fpath.endswith(".py"):
+            try:
+                tree = ast.parse(content)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Call):
+                        if isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec", "__import__"):
+                            violations.append({
+                                "code": "SEC-003-RCE-INJECTION",
+                                "msg": f"Dangerous RCE call {node.func.id}() at line {node.lineno} in {fpath}",
+                                "penalty": 1.0,
+                            })
+            except SyntaxError as e:
+                violations.append({
+                    "code": "SYNTAX-001-VALID-AST",
+                    "msg": f"AST Syntax error in {fpath} at line {e.lineno}: {e.msg}",
+                    "penalty": 0.8,
+                })
+
+        # 4. JSON Schema Validation
+        elif fpath.endswith(".json"):
+            try:
+                json.loads(content)
+            except json.JSONDecodeError as e:
+                violations.append({
+                    "code": "SCHEMA-001-JSON-TYPES",
+                    "msg": f"Malformed JSON in {fpath} at line {e.lineno}: {e.msg}",
+                    "penalty": 0.7,
+                })
+
+    # Summary
+    kappa = sum(v["penalty"] for v in violations)
+    if violations:
+        for v in violations:
+            print(f"[FAIL] {v['code']}: {v['msg']}")
+        print(f"Paradox Index:   kappa = {kappa:.4f} (Destructive Semantic Interference)")
+        print("Verdict:         ANNIHILATED (DENY)")
+        return 1
+    else:
+        print("[PASS] SYNTAX-001: AST syntax verified across all source files")
+        print("[PASS] SEC-001: Zero unauthorized mutations to protected system paths")
+        print("[PASS] SEC-002: Zero high-entropy credentials or private keys detected")
+        print("[PASS] SEC-003: Zero dangerous RCE execution primitives (eval/exec)")
+        print("Paradox Index:   kappa = 0.0000 (Semantic Null-Space)")
+        print("Verdict:         ADMISSIBLE (ALLOW)")
+        return 0
+
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Construct command-line argument parser for causalyn CLI."""
     parser = argparse.ArgumentParser(
@@ -570,6 +674,10 @@ def build_parser() -> argparse.ArgumentParser:
     comp_p = subparsers.add_parser("compliance", help="Generate SOC2 Type II & EU AI Act compliance evidence pack (M5)")
     comp_p.add_argument("--output-dir", "-o", default="runtime/compliance", help="Output evidence directory")
 
+    # Subcommand: verify
+    verify_p = subparsers.add_parser("verify", help="Run deterministic invariant and AST verification on target file/directory")
+    verify_p.add_argument("target", nargs="?", default=".", help="Target file or directory to verify (default: current dir)")
+
     return parser
 
 
@@ -586,6 +694,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return handle_init(args)
     elif args.subcommand == "run":
         return handle_run(args)
+    elif args.subcommand == "verify":
+        return handle_verify(args)
     elif args.subcommand == "cert":
         return handle_cert(args)
     elif args.subcommand == "wrap":

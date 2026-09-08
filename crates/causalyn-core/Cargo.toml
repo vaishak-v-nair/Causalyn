@@ -1,0 +1,14 @@
+[package]
+name = "causalyn-core"
+version = "3.0.0"
+edition = "2021"
+description = "High-performance native acceleration kernel for Causalyn & VPSN"
+authors = ["Causalyn Engineering <engineering@causalyn.ai>"]
+license = "Apache-2.0"
+
+[lib]
+name = "causalyn_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sha2 = "0.10"

@@ -45,3 +45,9 @@ causalyn_presentation_demo.webp
 # Manim intermediate files
 **/partial_movie_files/
 backend/media/
+
+# Rust build artifacts
+target/
+**/target/
+*.pdb
+*.rlib
