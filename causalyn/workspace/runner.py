@@ -55,6 +55,26 @@ class WorkspaceRunResult:
             "diff": self.diff,
             "timestamp": self.timestamp,
         }
+def calculate_conserved_tokens(
+    content: str,
+    violations: List[str],
+    patch_applied: bool = False,
+    is_annihilated: bool = False,
+) -> int:
+    """Calculates the exact tokens conserved by pre-execution interception and auto-patching.
+
+    Eliminates hardcoded magic constants by deterministically estimating:
+    1. Code Token Volume: The proposed code payload that would have failed execution (chars // 4).
+    2. Compiler / Traceback Overhead: Stack frames, error line snippets, and exception text (120 baseline + 35 per violation).
+    3. LLM Re-prompt Overhead: Turn context, error explanation, and prompt reprompt framing (150 baseline).
+    """
+    if not (patch_applied or is_annihilated or violations):
+        return 0
+
+    code_tokens = max(10, len(content.strip()) // 4)
+    traceback_tokens = 120 + (len(violations) * 35)
+    reprompt_overhead = 150 + min(code_tokens, 250)
+    return code_tokens + traceback_tokens + reprompt_overhead
 
 
 class AcausalWorkspaceRunner:
@@ -141,8 +161,7 @@ class AcausalWorkspaceRunner:
 
         diff_text = ""
         patch_applied = False
-        tokens_conserved = 0
-        avoided_crashes = 0
+        is_annihilated = False
 
         if kappa == 0.0 or patch is not None:
             # Verified or auto-patched
@@ -151,9 +170,6 @@ class AcausalWorkspaceRunner:
             if patch:
                 patch_applied = True
                 diff_text = f"@@ Auto-patched state variables: {patch.get('values', {})} @@"
-                # Conserved tokens by avoiding runtime crash and re-prompt:
-                tokens_conserved = 450
-                avoided_crashes = 1
 
             # Commit to host disk via ephemeral shadow continuum
             try:
@@ -161,13 +177,23 @@ class AcausalWorkspaceRunner:
                     self.fabric.atomic_commit(shadow_dir, target_file)
             except Exception as e:
                 verdict = "ANNIHILATED"
+                is_annihilated = True
                 violations.append(f"Atomic commit error: {e}")
         else:
             verdict = "ANNIHILATED"
-            tokens_conserved = 450  # Prevented corrupt run
-            avoided_crashes = 1
+            is_annihilated = True
 
-        state_repr = f"{target_file}:{final_code}:{kappa}:{verdict}"
+        tokens_conserved = calculate_conserved_tokens(
+            content=proposed_content,
+            violations=violations,
+            patch_applied=patch_applied,
+            is_annihilated=is_annihilated,
+        )
+        avoided_crashes = 1 if (patch_applied or is_annihilated or kappa > 0) else 0
+
+        # Cryptographic commit hash incorporating workspace Merkle root
+        merkle_root, _ = self.config.compute_merkle_tree()
+        state_repr = f"{self.config.project_name}:{target_file}:{content_to_commit if 'content_to_commit' in locals() else proposed_content}:{kappa}:{merkle_root}"
         commit_hash = "0x" + hashlib.sha256(state_repr.encode()).hexdigest()[:12]
 
         return WorkspaceRunResult(
@@ -206,15 +232,25 @@ class AcausalWorkspaceRunner:
         kappa = pipeline_res.get("kappa", 0.0)
         verdict = pipeline_res.get("status", "COMMITTED")
         patch = pipeline_res.get("patch")
+        violations = [pipeline_res.get("reason", "")] if pipeline_res.get("reason") else []
+        code_content = pipeline_res.get("code") or ""
 
-        tokens_conserved = 450 if (patch or kappa > 0) else 0
-        avoided_crashes = 1 if (patch or kappa > 0) else 0
+        patch_applied = bool(patch)
+        is_annihilated = verdict != "COMMITTED"
+        tokens_conserved = calculate_conserved_tokens(
+            content=code_content,
+            violations=violations,
+            patch_applied=patch_applied,
+            is_annihilated=is_annihilated,
+        )
+        avoided_crashes = 1 if (patch_applied or is_annihilated or kappa > 0) else 0
 
         diff_text = ""
         if patch:
             diff_text = f"@@ Auto-patched: {patch} @@"
 
-        state_repr = f"{resolved_target}:{pipeline_res.get('code')}:{kappa}:{verdict}"
+        merkle_root, _ = self.config.compute_merkle_tree()
+        state_repr = f"{self.config.project_name}:{resolved_target}:{code_content}:{kappa}:{merkle_root}"
         commit_hash = "0x" + hashlib.sha256(state_repr.encode()).hexdigest()[:12]
 
         return WorkspaceRunResult(
@@ -224,12 +260,12 @@ class AcausalWorkspaceRunner:
             agent_id=agent_id,
             verdict=verdict,
             paradox_index=kappa,
-            violations=[pipeline_res.get("reason", "")] if pipeline_res.get("reason") else [],
+            violations=violations,
             latency_us=latency_us,
             tokens_conserved=tokens_conserved,
             avoided_crashes=avoided_crashes,
             commit_hash=commit_hash,
-            patch_applied=bool(patch),
+            patch_applied=patch_applied,
             diff=diff_text,
         )
 

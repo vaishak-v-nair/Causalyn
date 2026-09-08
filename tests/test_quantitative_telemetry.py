@@ -47,26 +47,53 @@ def test_quantitative_telemetry_tracker_accumulation():
         assert log_file.exists()
 
 
+def test_idle_tracker_has_no_fake_latency():
+    """Verify that an unexercised tracker reports true 0.0 metrics without fake baselines."""
+    tracker = QuantitativeTelemetryTracker()
+    summary = tracker.get_summary()
+    assert summary["total_mutations_evaluated"] == 0
+    assert summary["latest_latency_us"] == 0.0
+    assert summary["mean_latency_us"] == 0.0
+    assert summary["p50_latency_us"] == 0.0
+    assert summary["p95_latency_us"] == 0.0
+    assert summary["status"] == "idle"
+
+
 def test_wandb_offline_fallback():
-    """Verify WandbAcausalLogger works seamlessly offline without throwing exceptions."""
-    logger = WandbAcausalLogger(project="test-project", enabled=False)
-    assert logger.is_online is False
+    """Verify WandbAcausalLogger writes structured offline metadata and history files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        offline_dir = Path(tmpdir) / "wandb_offline"
+        logger = WandbAcausalLogger(project="test-project", enabled=False, offline_log_path=offline_dir)
+        assert logger.is_online is False
 
-    logger.init_run(run_name="test-run")
-    record = logger.log_mutation_result(
-        latency_us=50.0,
-        tokens_conserved=450,
-        avoided_crashes=1,
-        kappa=0.0,
-        verdict="COMMITTED",
-        agent_id="test-agent",
-        target_file="test.py",
-        commit_hash="0xabc123",
-    )
+        logger.init_run(run_name="test-run", config={"lr": 0.001})
+        record = logger.log_mutation_result(
+            latency_us=50.0,
+            tokens_conserved=320,
+            avoided_crashes=1,
+            kappa=0.0,
+            verdict="COMMITTED",
+            agent_id="test-agent",
+            target_file="test.py",
+            commit_hash="0xabc123",
+        )
 
-    assert record["tokens_conserved"] == 450
-    assert record["avoided_crashes"] == 1
-    logger.finish()
+        assert record["tokens_conserved"] == 320
+        assert record["avoided_crashes"] == 1
+
+        # Test artifact logging in offline mode
+        dummy_cert = Path(tmpdir) / "audit.pdf"
+        dummy_cert.write_bytes(b"%PDF-1.4 mock")
+        logged = logger.log_certificate_artifact(dummy_cert, "a1b2c3d4e5f6")
+        assert logged is True
+
+        logger.finish()
+
+        # Check offline directory contents
+        assert (logger.offline_dir / "wandb-metadata.json").exists()
+        assert (logger.offline_dir / "wandb-history.jsonl").exists()
+        assert (logger.offline_dir / "wandb-summary.json").exists()
+        assert (logger.offline_dir / "artifacts" / "cert-a1b2c3d4" / "audit.pdf").exists()
 
 
 def test_telemetry_api_endpoint():

@@ -34,7 +34,7 @@ class QuantitativeTelemetryTracker:
         self.total_annihilated: int = 0
 
         self.latencies_us: List[float] = []
-        self.latest_latency_us: float = 44.02  # baseline benchmark
+        self.latest_latency_us: float = 0.0
         self.latest_kappa: float = 0.0
 
     def record_mutation(
@@ -92,14 +92,18 @@ class QuantitativeTelemetryTracker:
         with self._lock:
             p50 = 0.0
             p95 = 0.0
+            mean_lat = 0.0
+            min_lat = 0.0
+            max_lat = 0.0
+
             if self.latencies_us:
                 sorted_lat = sorted(self.latencies_us)
                 n = len(sorted_lat)
                 p50 = sorted_lat[int(n * 0.50)]
                 p95 = sorted_lat[min(int(n * 0.95), n - 1)]
-            else:
-                p50 = self.latest_latency_us
-                p95 = self.latest_latency_us * 1.5
+                mean_lat = sum(self.latencies_us) / n
+                min_lat = sorted_lat[0]
+                max_lat = sorted_lat[-1]
 
             return {
                 "total_mutations_evaluated": self.total_mutations_evaluated,
@@ -108,9 +112,13 @@ class QuantitativeTelemetryTracker:
                 "total_committed": self.total_committed,
                 "total_annihilated": self.total_annihilated,
                 "latest_latency_us": round(self.latest_latency_us, 2),
+                "mean_latency_us": round(mean_lat, 2),
+                "min_latency_us": round(min_lat, 2),
+                "max_latency_us": round(max_lat, 2),
                 "p50_latency_us": round(p50, 2),
                 "p95_latency_us": round(p95, 2),
                 "latest_kappa": round(self.latest_kappa, 4),
+                "status": "active" if self.total_mutations_evaluated > 0 else "idle",
             }
 
 
@@ -145,23 +153,26 @@ class WandbAcausalLogger:
         self._wandb_run = None
         self.is_online = False
         self.mode = "offline"
+        self.run_id: str = f"run-{int(time.time()*1000)}"
+        self.offline_dir: Path = Path(offline_log_path or "runtime/telemetry/wandb_offline") / self.run_id
+        self._step = 0
 
         if self.enabled and os.environ.get("WANDB_DISABLED", "").lower() not in ("1", "true"):
             try:
                 import wandb
                 self._wandb_module = wandb
                 # Check for API key
-                if os.environ.get("WANDB_API_KEY") or wandb.api.api_key:
+                if os.environ.get("WANDB_API_KEY") or getattr(getattr(wandb, "api", None), "api_key", None):
                     self.is_online = True
                     self.mode = "online"
                 else:
-                    self.mode = "offline_local"
+                    self.mode = "offline"
             except (ImportError, Exception):
                 self._wandb_module = None
-                self.mode = "disabled_fallback"
+                self.mode = "offline"
 
     def init_run(self, run_name: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> None:
-        """Initializes a W&B run if online, or prepares local offline tracking."""
+        """Initializes a W&B run if online, or initializes structured local offline tracking."""
         if self.is_online and self._wandb_module:
             try:
                 self._wandb_run = self._wandb_module.init(
@@ -172,17 +183,48 @@ class WandbAcausalLogger:
                     reinit=True,
                 )
             except Exception as e:
-                logger.warning("W&B initialization failed, falling back to local logging: %s", e)
+                logger.warning("W&B online init failed, switching to structured offline ledger: %s", e)
                 self.is_online = False
-                self.mode = "offline_fallback"
+                self.mode = "offline"
+
+        if not self.is_online:
+            try:
+                self.offline_dir.mkdir(parents=True, exist_ok=True)
+                meta_file = self.offline_dir / "wandb-metadata.json"
+                meta_data = {
+                    "run_id": self.run_id,
+                    "run_name": run_name or self.run_id,
+                    "project": self.project,
+                    "entity": self.entity,
+                    "start_time": time.time(),
+                    "config": config or {},
+                }
+                meta_file.write_text(json.dumps(meta_data, indent=2), encoding="utf-8")
+            except Exception as e:
+                logger.debug("Failed initializing offline W&B directory: %s", e)
 
     def log_metric(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
-        """Logs metrics to W&B and local tracker."""
+        """Logs metrics to W&B cloud (if online) and local offline run ledger."""
+        self._step += 1
+        current_step = step if step is not None else self._step
+
         if self.is_online and self._wandb_module and self._wandb_run:
             try:
-                self._wandb_module.log(metrics, step=step)
+                self._wandb_module.log(metrics, step=current_step)
             except Exception as e:
                 logger.debug("W&B log failed: %s", e)
+
+        # Write to offline history log
+        try:
+            self.offline_dir.mkdir(parents=True, exist_ok=True)
+            history_file = self.offline_dir / "wandb-history.jsonl"
+            payload = dict(metrics)
+            payload["_step"] = current_step
+            payload["_timestamp"] = time.time()
+            with open(history_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(payload) + "\n")
+        except Exception:
+            pass
 
     def log_mutation_result(
         self,
@@ -238,13 +280,27 @@ class WandbAcausalLogger:
                 return True
             except Exception as e:
                 logger.debug("Failed logging W&B artifact: %s", e)
-                return False
-        return True
+
+        # In offline mode, copy artifact into offline artifacts store
+        try:
+            artifact_dir = self.offline_dir / "artifacts" / f"cert-{merkle_root[:8]}"
+            artifact_dir.mkdir(parents=True, exist_ok=True)
+            target = artifact_dir / cert_path.name
+            target.write_bytes(cert_path.read_bytes())
+            return True
+        except Exception:
+            return False
 
     def finish(self) -> None:
-        """Closes the W&B run cleanly."""
+        """Closes the W&B run cleanly and writes offline summary."""
         if self.is_online and self._wandb_module and self._wandb_run:
             try:
                 self._wandb_run.finish()
             except Exception:
                 pass
+
+        try:
+            summary_file = self.offline_dir / "wandb-summary.json"
+            summary_file.write_text(json.dumps(self.tracker.get_summary(), indent=2), encoding="utf-8")
+        except Exception:
+            pass

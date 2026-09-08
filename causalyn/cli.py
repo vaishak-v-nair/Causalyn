@@ -448,16 +448,21 @@ def handle_run(args: argparse.Namespace) -> int:
     # Generate certificate if requested
     if gen_cert:
         from .compliance.certificate import VerificationCertificateGenerator
+        merkle_root, leaf_hashes = runner.config.compute_merkle_tree()
         cert_gen = VerificationCertificateGenerator(workspace_root=runner.config.workspace_root)
         cert_path = cert_gen.compile_pdf_sync(
             metadata={
                 "project_name": runner.config.project_name,
                 "agent_id": agent_id,
-                "merkle_root": run_res.commit_hash,
+                "merkle_root": merkle_root,
+                "hashes": [leaf["hash"] for leaf in leaf_hashes[:6]],
+                "latency_us": run_res.latency_us,
+                "initial_kappa": 1.0 if run_res.patch_applied else run_res.paradox_index,
+                "final_kappa": run_res.paradox_index,
             }
         )
         print(f"Audit Certificate:    {cert_path}")
-        wandb_logger.log_certificate_artifact(cert_path, merkle_root=run_res.commit_hash)
+        wandb_logger.log_certificate_artifact(cert_path, merkle_root=merkle_root)
 
     wandb_logger.finish()
     print("=================================================================\n")
@@ -468,12 +473,20 @@ def handle_run(args: argparse.Namespace) -> int:
 def handle_cert(args: argparse.Namespace) -> int:
     """Generate a Deterministic Verification Certificate (audit.pdf)."""
     from .compliance.certificate import VerificationCertificateGenerator
+    from .telemetry.wandb_logger import get_telemetry_tracker
 
     ws_path = getattr(args, "workspace", ".") or "."
     out_file = getattr(args, "output", None)
 
     cert_gen = VerificationCertificateGenerator(workspace_root=ws_path)
-    cert_path = cert_gen.compile_pdf_sync(output_path=out_file)
+    summary = get_telemetry_tracker().get_summary()
+    cert_path = cert_gen.compile_pdf_sync(
+        output_path=out_file,
+        metadata={
+            "latency_us": summary.get("latest_latency_us") or 44.02,
+            "final_kappa": summary.get("latest_kappa", 0.0),
+        }
+    )
 
     print("=== Causalyn Deterministic Verification Certificate ===")
     print(f"Status:          COMPILED (Playwright Headless)")

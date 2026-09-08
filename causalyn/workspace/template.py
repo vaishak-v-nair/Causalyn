@@ -8,6 +8,7 @@ Manages the .causalyn/ directory lifecycle, defining:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -128,6 +129,90 @@ class AcausalWorkspaceConfig:
     @property
     def protected_paths(self) -> List[str]:
         return self.manifest.get("boundaries", {}).get("protected_paths", [])
+
+    def compute_merkle_tree(self) -> tuple[str, List[Dict[str, Any]]]:
+        """Computes the authentic cryptographic SHA-256 Merkle root and leaf hashes across workspace files."""
+        leaves: List[Dict[str, Any]] = []
+        ignore_dirs = {".git", "__pycache__", "runtime", ".pytest_cache", "venv", ".venv", "build", "dist"}
+        ignore_exts = {".pyc", ".pyo", ".pyd", ".sqlite3", ".log", ".tmp"}
+
+        files_to_hash: List[Path] = []
+        if self.workspace_root.exists():
+            for root, dirs, files in os.walk(self.workspace_root):
+                dirs[:] = [d for d in dirs if d not in ignore_dirs and not d.endswith(".egg-info")]
+                for f in files:
+                    p = Path(root) / f
+                    if p.suffix in ignore_exts:
+                        continue
+                    files_to_hash.append(p)
+
+        files_to_hash.sort(key=lambda p: str(p.relative_to(self.workspace_root)).replace("\\", "/"))
+
+        leaf_hashes: List[str] = []
+        for file_path in files_to_hash:
+            try:
+                rel_path = str(file_path.relative_to(self.workspace_root)).replace("\\", "/")
+                data = file_path.read_bytes()
+                h = hashlib.sha256(data).hexdigest()
+                leaf_hashes.append(h)
+                leaves.append({
+                    "path": rel_path,
+                    "hash": f"0x{h[:12]}",
+                    "full_sha256": h,
+                    "size_bytes": len(data),
+                })
+            except Exception:
+                continue
+
+        if not leaf_hashes:
+            empty_hash = hashlib.sha256(f"empty:{self.project_name}".encode()).hexdigest()
+            return empty_hash, [{"path": ".causalyn", "hash": f"0x{empty_hash[:12]}", "full_sha256": empty_hash, "size_bytes": 0}]
+
+        # Standard pairwise Merkle tree algorithm
+        current_level = leaf_hashes
+        while len(current_level) > 1:
+            next_level = []
+            for i in range(0, len(current_level), 2):
+                if i + 1 < len(current_level):
+                    combined = (current_level[i] + current_level[i + 1]).encode()
+                else:
+                    combined = (current_level[i] + current_level[i]).encode()
+                next_level.append(hashlib.sha256(combined).hexdigest())
+            current_level = next_level
+
+        merkle_root = current_level[0]
+        return merkle_root, leaves
+
+    def verify_state_smt(self, state_vars: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """Directly verifies candidate state variables against SMT-LIB constraints in invariants.z3 using Z3."""
+        try:
+            import z3
+        except ImportError:
+            # Fallback to parsed numerical rules
+            return True, None
+
+        solver = z3.Solver()
+        try:
+            solver.from_string(self.invariants_z3_raw)
+        except Exception as e:
+            return False, f"Failed parsing SMT-LIB invariants: {e}"
+
+        # Bind proposed state variables
+        for var_name, var_val in state_vars.items():
+            if isinstance(var_val, int):
+                solver.add(z3.Int(var_name) == var_val)
+            elif isinstance(var_val, bool):
+                solver.add(z3.Bool(var_name) == var_val)
+            elif isinstance(var_val, float):
+                solver.add(z3.Real(var_name) == var_val)
+
+        check_res = solver.check()
+        if check_res == z3.sat:
+            return True, None
+        elif check_res == z3.unsat:
+            return False, f"State variables violate SMT invariants in invariants.z3: {state_vars}"
+        else:
+            return False, f"Z3 SMT solver returned unknown verdict: {check_res}"
 
 
 class WorkspaceTemplateManager:

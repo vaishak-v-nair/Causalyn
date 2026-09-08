@@ -40,6 +40,41 @@ def test_generate_html_certificate_custom_metadata(tmp_path: Path):
     assert "0x111111 &rarr; 0x222222 &rarr; 0x333333 &rarr; 0x444444" in html
 
 
+def test_generate_html_dynamic_proof_matrix_and_svg(tmp_path: Path):
+    """Verify certificate dynamically reflects real invariant results and real measured latency."""
+    generator = VerificationCertificateGenerator(workspace_root=tmp_path)
+    custom_invariants = [
+        {
+            "id": "CUSTOM_TENSOR_DIM_INVARIANT",
+            "specification": "dim(tensor) == [B, 128, 768]",
+            "engine": "Z3 Tensor Shape SMT",
+            "measured": "dim = [B, 128, 768]",
+            "status": "PASS",
+        },
+        {
+            "id": "CUSTOM_GPU_MEMORY_CEILING",
+            "specification": "gpu_vram <= 24GB",
+            "engine": "CUDA Runtime Monitor",
+            "measured": "vram = 32GB",
+            "status": "VIOLATED",
+        },
+    ]
+
+    html = generator.generate_html_certificate(metadata={
+        "latency_us": 18.75,
+        "initial_kappa": 0.85,
+        "final_kappa": 0.0,
+        "invariant_results": custom_invariants,
+    })
+
+    assert "CUSTOM_TENSOR_DIM_INVARIANT" in html
+    assert "CUSTOM_GPU_MEMORY_CEILING" in html
+    assert "SATISFIED" in html
+    assert "VIOLATED" in html
+    assert "18.8µs" in html
+    assert "18.75" in html
+
+
 @pytest.mark.asyncio
 async def test_compile_pdf_async(tmp_path: Path):
     generator = VerificationCertificateGenerator(workspace_root=tmp_path)

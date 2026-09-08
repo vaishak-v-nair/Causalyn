@@ -261,26 +261,25 @@ function handleServerMessage(data) {
         updateMetrics(data.kappa, data.latency_us, data.status);
 
         // 4.1 Update Quantitative Telemetry (Dual Telemetry Plane)
-        if (data.status === "SYNTHESIZED" || data.status === "ANNIHILATED") {
-            const elTokens = document.getElementById('metric-quant-tokens');
-            const elCrashes = document.getElementById('metric-quant-crashes');
-            const elRuns = document.getElementById('metric-quant-runs');
-            const elLatency = document.getElementById('metric-quant-latency');
-            if (elTokens) {
-                const current = parseInt(elTokens.innerText.replace(/,/g, '')) || 0;
-                elTokens.innerText = (current + 450).toLocaleString();
-            }
-            if (elCrashes) {
-                const current = parseInt(elCrashes.innerText) || 0;
-                elCrashes.innerText = (current + 1).toString();
-            }
-            if (elRuns) {
-                const current = parseInt(elRuns.innerText) || 0;
-                elRuns.innerText = (current + 1).toString();
-            }
-            if (elLatency && data.latency_us) {
-                elLatency.innerText = `${data.latency_us.toFixed(2)} µs`;
-            }
+        const elTokens = document.getElementById('metric-quant-tokens');
+        const elCrashes = document.getElementById('metric-quant-crashes');
+        const elRuns = document.getElementById('metric-quant-runs');
+        const elLatency = document.getElementById('metric-quant-latency');
+
+        if (data.tokens_conserved !== undefined && elTokens) {
+            const current = parseInt(elTokens.innerText.replace(/,/g, '')) || 0;
+            elTokens.innerText = (current + data.tokens_conserved).toLocaleString();
+        }
+        if (data.avoided_crashes !== undefined && elCrashes) {
+            const current = parseInt(elCrashes.innerText) || 0;
+            elCrashes.innerText = (current + data.avoided_crashes).toString();
+        }
+        if (elRuns) {
+            const current = parseInt(elRuns.innerText) || 0;
+            elRuns.innerText = (current + 1).toString();
+        }
+        if (elLatency && data.latency_us) {
+            elLatency.innerText = `${data.latency_us.toFixed(2)} µs`;
         }
 
         // 5. Update 3D Manifold (Cyber-industrial contrast)
