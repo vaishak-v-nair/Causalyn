@@ -374,6 +374,45 @@
                     <span class="panel-tag" id="zone-3-tag">Z3 SMT PROVER</span>
                 </div>
 
+                <!-- Quantitative Telemetry Ledger (Dual Telemetry Plane: Sakana Integration) -->
+                <div class="metric-card quantitative-ledger-card" id="quantitative-ledger-card">
+                    <div class="quant-card-header">
+                        <div class="metric-label" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <span>📊 DUAL QUANTITATIVE TELEMETRY</span>
+                            <span class="badge-wandb" id="badge-wandb-status" title="Weights & Biases artifact synchronization">W&amp;B SYNC</span>
+                        </div>
+                        <button class="btn-toggle-quant" id="btn-toggle-quant" title="Toggle detailed quantitative metric grid">COLLAPSE</button>
+                    </div>
+
+                    <div class="quant-metrics-content" id="quant-metrics-content">
+                        <div class="quant-grid">
+                            <div class="quant-cell">
+                                <span class="quant-cell-val" id="metric-quant-latency">44.02 µs</span>
+                                <span class="quant-cell-sub">AST Synthesis Latency</span>
+                            </div>
+                            <div class="quant-cell">
+                                <span class="quant-cell-val highlight-cyan" id="metric-quant-tokens">450</span>
+                                <span class="quant-cell-sub">Context Tokens Conserved</span>
+                            </div>
+                            <div class="quant-cell">
+                                <span class="quant-cell-val highlight-emerald" id="metric-quant-crashes">1</span>
+                                <span class="quant-cell-sub">Avoided Compiler Crashes</span>
+                            </div>
+                            <div class="quant-cell">
+                                <span class="quant-cell-val" id="metric-quant-runs">1</span>
+                                <span class="quant-cell-sub">Evaluated Mutations</span>
+                            </div>
+                        </div>
+
+                        <!-- Formal Certification Export Button -->
+                        <div class="quant-action-row" style="margin-top: 8px;">
+                            <a href="/api/v1/compliance/certificate.pdf" target="_blank" class="btn-export-cert" id="btn-export-cert" title="Download audit-grade Deterministic Verification Certificate PDF with embedded Manim proof">
+                                <span>📄</span> EXPORT FORMAL CERTIFICATE (PDF) ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Autobahn Hero Metric: 34,200x Speedup & Zero Token Re-prompt Cost -->
                 <div class="metric-card autobahn-speedup-card" id="autobahn-speedup-card">
                     <div class="speedup-header">

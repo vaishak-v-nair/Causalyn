@@ -4052,3 +4052,135 @@ img, video, canvas {
   padding: 2px 6px;
   border-radius: 4px;
 }
+
+/* ==========================================================================
+   Dual Quantitative Telemetry & W&B Ledger Styles (Sakana AI Paradigm)
+   ========================================================================== */
+
+.quantitative-ledger-card {
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  background: linear-gradient(135deg, rgba(8, 14, 28, 0.95), rgba(15, 23, 42, 0.9));
+  box-shadow: 0 4px 20px -2px rgba(0, 243, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.quantitative-ledger-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan-accent), var(--indigo-accent), var(--safe-emerald));
+}
+
+.quant-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.badge-wandb {
+  font-size: 9px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber-warn);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.btn-toggle-quant {
+  font-family: 'Outfit', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-quant:hover {
+  background: rgba(0, 243, 255, 0.15);
+  color: var(--cyan-accent);
+  border-color: var(--cyan-border);
+}
+
+.quant-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.quant-cell {
+  background: rgba(3, 7, 18, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.quant-cell-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.quant-cell-val.highlight-cyan {
+  color: var(--cyan-accent);
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+}
+
+.quant-cell-val.highlight-emerald {
+  color: var(--safe-emerald);
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.quant-cell-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 2px;
+}
+
+.btn-export-cert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.15), rgba(99, 102, 241, 0.2));
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  color: var(--cyan-accent);
+  font-family: 'Outfit', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.1);
+}
+
+.btn-export-cert:hover {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.3), rgba(99, 102, 241, 0.35));
+  border-color: #00F3FF;
+  color: #FFFFFF;
+  box-shadow: 0 0 18px rgba(0, 243, 255, 0.35);
+  transform: translateY(-1px);
+}
+

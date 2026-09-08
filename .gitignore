@@ -19,6 +19,9 @@ runtime/commit_history.jsonl
 runtime/benchmarks/
 runtime/compliance/
 runtime/demo_workspace/
+runtime/telemetry/
+runtime/test_ws/
+*.jsonl
 
 # Environment & secrets
 .env

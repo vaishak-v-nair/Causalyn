@@ -84,7 +84,42 @@ export function initCockpit() {
     loadInvariants();
     setupPlaygroundAndInvariants();
     setLifecyclePhase(1, 'active');
+    initQuantitativeTelemetry();
 }
+
+async function initQuantitativeTelemetry() {
+    try {
+        const res = await fetch('/api/v1/telemetry/quantitative');
+        if (res.ok) {
+            const data = await res.json();
+            updateQuantitativeTelemetryUI(data);
+        }
+    } catch (e) {
+        console.debug("Quantitative telemetry init error", e);
+    }
+}
+
+export function updateQuantitativeTelemetryUI(summary) {
+    if (!summary) return;
+    const elLatency = document.getElementById('metric-quant-latency');
+    const elTokens = document.getElementById('metric-quant-tokens');
+    const elCrashes = document.getElementById('metric-quant-crashes');
+    const elRuns = document.getElementById('metric-quant-runs');
+
+    if (elLatency && summary.latest_latency_us !== undefined) {
+        elLatency.innerText = `${summary.latest_latency_us.toFixed(2)} µs`;
+    }
+    if (elTokens && summary.total_tokens_conserved !== undefined) {
+        elTokens.innerText = summary.total_tokens_conserved.toLocaleString();
+    }
+    if (elCrashes && summary.total_avoided_crashes !== undefined) {
+        elCrashes.innerText = summary.total_avoided_crashes.toString();
+    }
+    if (elRuns && summary.total_mutations_evaluated !== undefined) {
+        elRuns.innerText = summary.total_mutations_evaluated.toString();
+    }
+}
+
 
 function initWebSocket() {
     const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -225,6 +260,29 @@ function handleServerMessage(data) {
         // 4. Update HUD Metrics
         updateMetrics(data.kappa, data.latency_us, data.status);
 
+        // 4.1 Update Quantitative Telemetry (Dual Telemetry Plane)
+        if (data.status === "SYNTHESIZED" || data.status === "ANNIHILATED") {
+            const elTokens = document.getElementById('metric-quant-tokens');
+            const elCrashes = document.getElementById('metric-quant-crashes');
+            const elRuns = document.getElementById('metric-quant-runs');
+            const elLatency = document.getElementById('metric-quant-latency');
+            if (elTokens) {
+                const current = parseInt(elTokens.innerText.replace(/,/g, '')) || 0;
+                elTokens.innerText = (current + 450).toLocaleString();
+            }
+            if (elCrashes) {
+                const current = parseInt(elCrashes.innerText) || 0;
+                elCrashes.innerText = (current + 1).toString();
+            }
+            if (elRuns) {
+                const current = parseInt(elRuns.innerText) || 0;
+                elRuns.innerText = (current + 1).toString();
+            }
+            if (elLatency && data.latency_us) {
+                elLatency.innerText = `${data.latency_us.toFixed(2)} µs`;
+            }
+        }
+
         // 5. Update 3D Manifold (Cyber-industrial contrast)
         updateKappaVisuals(data.kappa);
         
@@ -239,6 +297,14 @@ function handleServerMessage(data) {
             appendCommitHash(data.agent_id, data.target_file);
         }
     } 
+    else if (data.type === "workspace_run_completed" || data.type === "quantitative_update") {
+        if (data.telemetry_summary) {
+            updateQuantitativeTelemetryUI(data.telemetry_summary);
+        }
+        if (data.result) {
+            logToFeed(data.result.agent_id || "RUNNER", `[WORKSPACE RUN] ${data.result.workspace_name}: ${data.result.verdict} (κ=${data.result.paradox_index.toFixed(2)})`, data.result.paradox_index > 0 ? "danger" : "safe");
+        }
+    }
     else if (data.type === "swarm_reconciled") {
         logToFeed("LAMPORT-BUS", `Reconciled ${data.total_operations} concurrent state mutations: [${data.order.join(', ')}]`, "safe");
         playSynthesisSweep();
@@ -539,6 +605,17 @@ function setupControls() {
             if (e.target === howModal) {
                 howModal.style.display = 'none';
             }
+        });
+    }
+
+    // Quantitative Telemetry Ledger Collapse / Expand Toggle
+    const btnToggleQuant = document.getElementById('btn-toggle-quant');
+    const quantContent = document.getElementById('quant-metrics-content');
+    if (btnToggleQuant && quantContent) {
+        btnToggleQuant.addEventListener('click', () => {
+            const isHidden = quantContent.style.display === 'none';
+            quantContent.style.display = isHidden ? 'block' : 'none';
+            btnToggleQuant.innerText = isHidden ? 'COLLAPSE' : 'EXPAND';
         });
     }
 

@@ -4,9 +4,11 @@ from .engine import (
     ComplianceEvidencePack,
     ComplianceControlStatus,
 )
+from .certificate import VerificationCertificateGenerator
 
 __all__ = [
     "EnterpriseComplianceEngine",
     "ComplianceEvidencePack",
     "ComplianceControlStatus",
+    "VerificationCertificateGenerator",
 ]

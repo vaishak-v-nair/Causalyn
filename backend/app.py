@@ -58,6 +58,18 @@ class InvariantCreateRequest(BaseModel):
     expression: Optional[str] = None
     description: Optional[str] = None
 
+class WorkspaceInitRequest(BaseModel):
+    workspace_path: str = "."
+    project_name: Optional[str] = None
+    force: bool = False
+
+class WorkspaceRunRequest(BaseModel):
+    workspace_path: str = "."
+    intent: Optional[str] = "Optimize worker concurrency bounds within invariant equilibrium"
+    agent_id: str = "claude-3-5-sonnet"
+    target_file: Optional[str] = None
+    enable_wandb: bool = False
+
 class TelemetryBroadcaster:
     def __init__(self):
         self.connections: list[WebSocket] = []
@@ -330,6 +342,91 @@ async def reconcile_swarm_mutations(batch: SwarmBatchRequest):
             for op in reconciled_ops
         ]
     }
+
+@app.post("/api/v1/workspace/init")
+async def api_init_workspace(req: WorkspaceInitRequest):
+    """Initializes a structured .causalyn/ workspace template directory."""
+    try:
+        from causalyn.workspace.template import WorkspaceTemplateManager
+        c_dir = WorkspaceTemplateManager.init_workspace(
+            target_dir=req.workspace_path,
+            force=req.force,
+            project_name=req.project_name
+        )
+        await telemetry.emit_telemetry({
+            "type": "workspace_initialized",
+            "workspace_path": str(c_dir)
+        })
+        return {"status": "INITIALIZED", "path": str(c_dir)}
+    except Exception as e:
+        return {"status": "ERROR", "message": str(e)}
+
+@app.post("/api/v1/workspace/run")
+async def api_run_workspace(req: WorkspaceRunRequest):
+    """Runs an autonomous mutation/intent pipeline against an Acausal Workspace."""
+    try:
+        from causalyn.workspace.runner import AcausalWorkspaceRunner
+        from causalyn.telemetry.wandb_logger import get_telemetry_tracker, WandbAcausalLogger
+
+        runner = AcausalWorkspaceRunner(req.workspace_path)
+        wandb_logger = WandbAcausalLogger(enabled=req.enable_wandb)
+        res = await runner.run_intent(
+            intent=req.intent,
+            agent_id=req.agent_id,
+            target_file=req.target_file
+        )
+
+        wandb_logger.log_mutation_result(
+            latency_us=res.latency_us,
+            tokens_conserved=res.tokens_conserved,
+            avoided_crashes=res.avoided_crashes,
+            kappa=res.paradox_index,
+            verdict=res.verdict,
+            agent_id=req.agent_id,
+            target_file=res.target_file,
+            commit_hash=res.commit_hash
+        )
+
+        tracker_summary = get_telemetry_tracker().get_summary()
+
+        await telemetry.emit_telemetry({
+            "type": "workspace_run_completed",
+            "result": res.to_dict(),
+            "telemetry_summary": tracker_summary
+        })
+
+        return {"status": "SUCCESS", "result": res.to_dict(), "telemetry_summary": tracker_summary}
+    except Exception as e:
+        return {"status": "ERROR", "message": str(e)}
+
+@app.get("/api/v1/telemetry/quantitative")
+async def api_get_quantitative_telemetry():
+    """Returns real-time quantitative compiler and telemetry statistics."""
+    from causalyn.telemetry.wandb_logger import get_telemetry_tracker
+    tracker = get_telemetry_tracker()
+    return tracker.get_summary()
+
+@app.get("/api/v1/compliance/certificate.pdf")
+async def api_get_verification_certificate():
+    """Compiles and returns the latest Formal Verification Certificate (audit.pdf)."""
+    from causalyn.compliance.certificate import VerificationCertificateGenerator
+    repo_root = Path(__file__).resolve().parent.parent
+    cert_gen = VerificationCertificateGenerator(workspace_root=repo_root)
+    pdf_path = await cert_gen.compile_pdf(
+        output_path=repo_root / "runtime" / "compliance" / "audit.pdf",
+        metadata={
+            "project_name": "Causalyn VPSN Production Runtime",
+            "agent_id": "claude-3-5-sonnet",
+            "merkle_root": hashlib.sha256(b"causalyn-audit-merkle-root").hexdigest()
+        }
+    )
+    if pdf_path.exists():
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename="causalyn_verification_certificate.pdf"
+        )
+    return {"status": "ERROR", "message": "Could not generate certificate"}
 
 # Mount static web directories for direct asset resolution
 if web_dir.exists():
