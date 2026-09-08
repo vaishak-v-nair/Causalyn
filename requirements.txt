@@ -8,3 +8,4 @@ langchain-core
 anthropic
 python-dotenv
 pycrdt>=0.14.0
+websockets>=12.0
