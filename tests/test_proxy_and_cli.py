@@ -158,6 +158,26 @@ class TestProxyAndCLISuite(unittest.TestCase):
             exit_code = cli_main(["verify", bad_syntax_file])
             self.assertEqual(exit_code, 1)
 
+    def test_cli_main_ci_verify_pr_argument(self):
+        """Verify CLI 'ci verify-pr' accepts positional action and diff argument."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            diff_file = os.path.join(td, "patch.diff")
+            with open(diff_file, "w") as f:
+                f.write("diff --git a/app/format.py b/app/format.py\nnew file\n--- /dev/null\n+++ b/app/format.py\n@@ -0,0 +1,2 @@\n+def hello():\n+    return 1\n")
+            exit_code = cli_main(["ci", "verify-pr", "--diff", diff_file, "--pr-number", "10", "--commit-sha", "ci-sha-1"])
+            self.assertEqual(exit_code, 0)
+
+    def test_cli_main_ci_without_action_positional(self):
+        """Verify CLI 'ci' works without positional action argument."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            diff_file = os.path.join(td, "patch.diff")
+            with open(diff_file, "w") as f:
+                f.write("diff --git a/app/format.py b/app/format.py\nnew file\n--- /dev/null\n+++ b/app/format.py\n@@ -0,0 +1,2 @@\n+def hello():\n+    return 1\n")
+            exit_code = cli_main(["ci", "--diff", diff_file, "--pr-number", "11", "--commit-sha", "ci-sha-2"])
+            self.assertEqual(exit_code, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

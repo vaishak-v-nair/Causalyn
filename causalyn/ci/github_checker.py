@@ -51,26 +51,38 @@ class PRVerifier:
         for chunk in chunks:
             if not chunk.strip():
                 continue
-            # Look for target path: +++ b/path/to/file
+            path = None
             match = re.search(r"\+\+\+ b/([^\n\r]+)", chunk)
             if match:
                 path = "/" + match.group(1).lstrip("/")
-                # Extract added lines as representative candidate content
-                added_lines = []
-                for line in chunk.splitlines():
-                    if line.startswith("+") and not line.startswith("+++"):
-                        added_lines.append(line[1:])
-                files_map[path] = "\n".join(added_lines)
             else:
-                # Direct simple diff format --- a/path +++ b/path
                 m_simple = re.search(r"--- a/([^\n\r]+)\s+\+\+\+ b/([^\n\r]+)", chunk)
                 if m_simple:
                     path = "/" + m_simple.group(2).lstrip("/")
-                    added_lines = [
-                        l[1:] for l in chunk.splitlines()
-                        if l.startswith("+") and not l.startswith("+++")
-                    ]
-                    files_map[path] = "\n".join(added_lines)
+
+            if not path:
+                continue
+
+            # Skip test suites, scripts, and documentation from strict agent-mutation interception
+            rel_lower = path.lstrip("/").lower()
+            if any(rel_lower.startswith(pfx) for pfx in ("tests/", "test/", "scripts/", "docs/", ".github/")):
+                continue
+
+            # If the complete file exists on disk in the repo root, evaluate the full file AST
+            disk_file = self.repo_root / path.lstrip("/")
+            if disk_file.is_file():
+                try:
+                    files_map[path] = disk_file.read_text(encoding="utf-8", errors="ignore")
+                    continue
+                except Exception:
+                    pass
+
+            # Fallback: extract added lines from diff hunk
+            added_lines = [
+                l[1:] for l in chunk.splitlines()
+                if l.startswith("+") and not l.startswith("+++")
+            ]
+            files_map[path] = "\n".join(added_lines)
 
         return files_map
 

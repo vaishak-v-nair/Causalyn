@@ -6,57 +6,63 @@ import threading
 from pathlib import Path
 from typing import Dict, Any
 
-from manim import *
-import numpy as np
+try:
+    from manim import *
+    import numpy as np
+    HAS_MANIM = True
 
-# Adjust manim global config for bright, radiant headless rendering
-config.background_color = "#F8FAFC"  # Beautiful bright pearl background
-config.pixel_width = 800
-config.pixel_height = 450
-config.frame_rate = 15
+    # Adjust manim global config for bright, radiant headless rendering
+    config.background_color = "#F8FAFC"  # Beautiful bright pearl background
+    config.pixel_width = 800
+    config.pixel_height = 450
+    config.frame_rate = 15
 
-class SymplecticManifoldScene(ThreeDScene):
-    def __init__(self, kappa: float, **kwargs):
-        self.kappa = kappa
-        super().__init__(**kwargs)
+    class SymplecticManifoldScene(ThreeDScene):
+        def __init__(self, kappa: float, **kwargs):
+            self.kappa = kappa
+            super().__init__(**kwargs)
 
-    def construct(self):
-        # Setup camera with elegant isometric perspective
-        self.set_camera_orientation(phi=60 * DEGREES, theta=45 * DEGREES, zoom=0.85)
+        def construct(self):
+            # Setup camera with elegant isometric perspective
+            self.set_camera_orientation(phi=60 * DEGREES, theta=45 * DEGREES, zoom=0.85)
 
-        # Create the parametric surface representing the Vaishak Continuum
-        # z = sin(u)cos(v) + kappa * e^{-(u^2 + v^2)}
-        def param_surface(u, v):
-            z = np.sin(u) * np.cos(v) + self.kappa * np.exp(-(u**2 + v**2))
-            return np.array([u, v, z])
+            # Create the parametric surface representing the Vaishak Continuum
+            # z = sin(u)cos(v) + kappa * e^{-(u^2 + v^2)}
+            def param_surface(u, v):
+                z = np.sin(u) * np.cos(v) + self.kappa * np.exp(-(u**2 + v**2))
+                return np.array([u, v, z])
 
-        surface = Surface(
-            param_surface,
-            u_range=[-3, 3],
-            v_range=[-3, 3],
-            resolution=(32, 32)
-        )
-        
-        # Bright, luminous palette: Vivid Indigo for Safe vs Vibrant Crimson for Paradox
-        if self.kappa > 0:
-            surface.set_style(
-                fill_opacity=0.75, 
-                stroke_color="#BE123C", 
-                stroke_width=1.2, 
-                fill_color="#E11D48"
+            surface = Surface(
+                param_surface,
+                u_range=[-3, 3],
+                v_range=[-3, 3],
+                resolution=(32, 32)
             )
-        else:
-            surface.set_style(
-                fill_opacity=0.75, 
-                stroke_color="#3730A3", 
-                stroke_width=1.2, 
-                fill_color="#4F46E5"
-            )
+            
+            # Bright, luminous palette: Vivid Indigo for Safe vs Vibrant Crimson for Paradox
+            if self.kappa > 0:
+                surface.set_style(
+                    fill_opacity=0.75, 
+                    stroke_color="#BE123C", 
+                    stroke_width=1.2, 
+                    fill_color="#E11D48"
+                )
+            else:
+                surface.set_style(
+                    fill_opacity=0.75, 
+                    stroke_color="#3730A3", 
+                    stroke_width=1.2, 
+                    fill_color="#4F46E5"
+                )
 
-        self.add(surface)
+            self.add(surface)
 
-        # Animate rotation for 2 seconds
-        self.play(Rotate(surface, angle=PI/2, axis=UP), run_time=2.0)
+            # Animate rotation for 2 seconds
+            self.play(Rotate(surface, angle=PI/2, axis=UP), run_time=2.0)
+
+except ImportError:
+    HAS_MANIM = False
+    SymplecticManifoldScene = None
 
 class ManimEngine:
     def __init__(self):
@@ -110,6 +116,12 @@ class ManimEngine:
             canonical_hash = self.compute_hash(999.0)
             if canonical_hash in self.cache:
                 return self.cache[canonical_hash]
+
+        if not HAS_MANIM:
+            # Fallback to pre-rendered canonical videos
+            target_kappa = 1.0 if kappa > 0.5 else 0.0
+            canonical_h = self.compute_hash(target_kappa)
+            return self.cache.get(canonical_h, "")
 
         with self._render_lock:
             # Re-check cache after acquiring lock

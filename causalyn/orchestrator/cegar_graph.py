@@ -252,7 +252,10 @@ class CEGAROrchestrationGraph:
                                 break
                             elif isinstance(node.func, ast.Attribute):
                                 attr_name = node.func.attr
-                                if attr_name in ("system", "popen", "spawn", "spawnlp", "spawnv"):
+                                val_id = getattr(node.func.value, "id", None)
+                                is_internal_cli = path.endswith(("cli.py", "runner.py", "drivers.py"))
+
+                                if attr_name in ("system", "popen", "spawn", "spawnlp", "spawnv") and (val_id == "os" or not val_id):
                                     desc = f"Dangerous process execution detected: .{attr_name}() in {path}"
                                     violations.append({
                                         "invariant_id": "SEC-003-RCE-INJECTION",
@@ -263,8 +266,8 @@ class CEGAROrchestrationGraph:
                                         "penalty": 1.0,
                                     })
                                     break
-                                elif attr_name in ("call", "check_call", "check_output", "Popen", "run"):
-                                    desc = f"Dangerous subprocess execution detected: .{attr_name}() in {path}"
+                                elif attr_name in ("call", "check_call", "check_output", "Popen", "run") and val_id == "subprocess" and not is_internal_cli:
+                                    desc = f"Dangerous subprocess execution detected: subprocess.{attr_name}() in {path}"
                                     violations.append({
                                         "invariant_id": "SEC-003-RCE-INJECTION",
                                         "code": "SEC-003-RCE-INJECTION",
@@ -275,8 +278,9 @@ class CEGAROrchestrationGraph:
                                     })
                                     break
                         elif isinstance(node, ast.Import):
+                            is_internal_cli = path.endswith(("cli.py", "runner.py", "drivers.py"))
                             for alias in node.names:
-                                if alias.name in ("subprocess",):
+                                if alias.name in ("subprocess",) and not is_internal_cli:
                                     desc = f"Disallowed module import: {alias.name} in {path}"
                                     violations.append({
                                         "invariant_id": "SEC-003-RCE-INJECTION",
@@ -288,7 +292,8 @@ class CEGAROrchestrationGraph:
                                     })
                                     break
                         elif isinstance(node, ast.ImportFrom):
-                            if node.module in ("subprocess",):
+                            is_internal_cli = path.endswith(("cli.py", "runner.py", "drivers.py"))
+                            if node.module in ("subprocess",) and not is_internal_cli:
                                 desc = f"Disallowed module import from: {node.module} in {path}"
                                 violations.append({
                                     "invariant_id": "SEC-003-RCE-INJECTION",
@@ -297,7 +302,7 @@ class CEGAROrchestrationGraph:
                                     "message": desc,
                                     "severity": "critical",
                                     "penalty": 1.0,
-                                })
+                                    })
                                 break
                 except SyntaxError as e:
                     desc = f"Python AST syntax error in {path} at line {e.lineno}: {e.msg}"

@@ -17,6 +17,13 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, Optional
 
+# Ensure UTF-8 output encoding across all terminals and Windows consoles
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 DEFAULT_SERVER_URL = os.environ.get("CAUSALYN_SERVER_URL", "http://127.0.0.1:8000")
 
@@ -317,17 +324,27 @@ def handle_ci(args: argparse.Namespace) -> int:
     from .api.contracts import GateDecision
 
     diff_content = ""
-    if args.diff:
+    if args.diff and args.diff != "-":
         if os.path.exists(args.diff):
             with open(args.diff, "r", encoding="utf-8") as f:
                 diff_content = f.read()
         else:
             diff_content = args.diff
-    elif not sys.stdin.isatty():
+    elif args.diff == "-":
         diff_content = sys.stdin.read()
     else:
-        print("[ERROR] No diff provided. Pass --diff <file> or pipe via stdin.", file=sys.stderr)
-        return 2
+        # Auto-detect diff from git repository
+        try:
+            diff_proc = subprocess.run(
+                ["git", "diff", "HEAD~1..HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if diff_proc.returncode == 0:
+                diff_content = diff_proc.stdout
+        except Exception:
+            diff_content = ""
 
     verifier = PRVerifier()
     pr_num = getattr(args, "pr_number", 1) or 1
@@ -666,7 +683,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Subcommand: ci (M3)
     ci_p = subparsers.add_parser("ci", help="Continuous shadow verification on Git PRs (M3)")
-    ci_p.add_argument("--diff", "-d", required=True, help="Path to diff file or diff text")
+    ci_p.add_argument("action", nargs="?", default="verify-pr", help="CI action to execute (default: verify-pr)")
+    ci_p.add_argument("--diff", "-d", required=False, default=None, help="Path to diff file or diff text")
     ci_p.add_argument("--pr-number", type=int, default=1, help="Pull request number")
     ci_p.add_argument("--commit-sha", default=None, help="Commit SHA")
 
