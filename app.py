@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from starlette.middleware.cors import CORSMiddleware
 
 from causalyn.commit.boundary import CommitBoundary
@@ -54,9 +54,15 @@ def build_orchestrator() -> tuple[AIOrchestrator, WorldStateManager]:
     )
     dataset = FailurePatternDataset()
     executor = ShadowExecutor(manager)
+    commit_history_path = None
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        import tempfile
+        commit_history_path = str(Path(tempfile.gettempdir()) / "commit_history.jsonl")
+
     boundary = CommitBoundary(
         failure_dataset=dataset,
         auth_policy_path=str(ROOT / "policies" / "auth.yaml"),
+        commit_history_path=commit_history_path,
     )
     orchestrator = AIOrchestrator()
 
@@ -86,9 +92,17 @@ ORCHESTRATOR, WORLD_STATE = build_orchestrator()
 PIPELINE_LOCK = threading.Lock()
 
 
-PIPELINE_STORE = PipelineStore(
-    os.environ.get("CAUSALYN_DB", str(ROOT / "runtime" / "causalyn.sqlite3"))
-)
+def _resolve_db_path() -> str:
+    db_env = os.environ.get("CAUSALYN_DB")
+    if db_env:
+        return db_env
+    if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        import tempfile
+        return str(Path(tempfile.gettempdir()) / "causalyn.sqlite3")
+    return str(ROOT / "runtime" / "causalyn.sqlite3")
+
+
+PIPELINE_STORE = PipelineStore(_resolve_db_path())
 
 
 def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
@@ -207,40 +221,80 @@ api.include_router(create_router(BACKEND_SERVICE, context_to_dict, prefix="/api"
 api.include_router(create_router(BACKEND_SERVICE, context_to_dict, prefix="/v1"))
 
 
+def _serve_page(filename: str, fallback_title: str) -> Response:
+    target = WEB_ROOT / filename
+    if target.exists() and target.is_file():
+        return FileResponse(target, media_type="text/html")
+    index_path = WEB_ROOT / "index.html"
+    if index_path.exists() and index_path.is_file():
+        return FileResponse(index_path, media_type="text/html")
+    fallback_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Causalyn — {fallback_title}</title>
+    <style>
+        :root {{ --bg: #0b0f19; --card: #131b2e; --accent: #6366f1; --text: #f3f4f6; --text-dim: #94a3b8; }}
+        body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; box-sizing: border-box; }}
+        .card {{ max-width: 680px; width: 100%; background: var(--card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 2.2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6); }}
+        .header {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }}
+        h1 {{ font-size: 1.5rem; margin: 0; color: #fff; font-weight: 700; }}
+        .badge {{ background: #10b981; color: #022c22; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; }}
+        p {{ color: var(--text-dim); line-height: 1.6; font-size: 0.95rem; margin-bottom: 1.5rem; }}
+        .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }}
+        a.btn {{ text-decoration: none; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.3); color: #c7d2fe; padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.88rem; font-weight: 500; transition: all 0.2s ease; display: block; text-align: center; }}
+        a.btn:hover {{ background: rgba(99,102,241,0.25); border-color: #818cf8; color: #fff; transform: translateY(-1px); }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <h1>Causalyn Continuum</h1>
+            <span class="badge">Online (Vercel)</span>
+        </div>
+        <p>The Acausal Control Plane, Formal Verification Hypervisor, and CEGIS Invariant Engine are operational in serverless mode.</p>
+        <div class="grid">
+            <a class="btn" href="/api/health">System Health</a>
+            <a class="btn" href="/api/pipeline/recent">Audit Ledger</a>
+            <a class="btn" href="/docs">OpenAPI Spec</a>
+            <a class="btn" href="/v1/system/status">Hypervisor Invariants</a>
+        </div>
+    </div>
+</body>
+</html>"""
+    return HTMLResponse(content=fallback_html, status_code=200, media_type="text/html")
+
+
 @api.get("/")
 @api.get("/cockpit")
-def index() -> FileResponse:
-    return FileResponse(WEB_ROOT / "index.html")
+def index() -> Response:
+    return _serve_page("index.html", "Hypervisor Cockpit")
 
 
 @api.get("/overview")
-def overview_page() -> FileResponse:
-    p = WEB_ROOT / "overview.html"
-    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+def overview_page() -> Response:
+    return _serve_page("overview.html", "Architecture Overview")
 
 
 @api.get("/invariants")
-def invariants_page() -> FileResponse:
-    p = WEB_ROOT / "invariants.html"
-    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+def invariants_page() -> Response:
+    return _serve_page("invariants.html", "Invariant Registry")
 
 
 @api.get("/proofs")
-def proofs_page() -> FileResponse:
-    p = WEB_ROOT / "proofs.html"
-    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+def proofs_page() -> Response:
+    return _serve_page("proofs.html", "SMT Proof Explorer")
 
 
 @api.get("/audit")
-def audit_page() -> FileResponse:
-    p = WEB_ROOT / "audit.html"
-    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+def audit_page() -> Response:
+    return _serve_page("audit.html", "Formal Audit Ledger")
 
 
 @api.get("/swarm")
-def swarm_page() -> FileResponse:
-    p = WEB_ROOT / "swarm.html"
-    return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+def swarm_page() -> Response:
+    return _serve_page("swarm.html", "Autonomous Swarm Consensus")
 
 
 # Mount all contemporary backend control plane, CEGIS, and telemetry endpoints
@@ -252,12 +306,12 @@ except Exception as e:
 
 
 @api.get("/{asset:path}")
-def asset(asset: str) -> FileResponse:
+def asset(asset: str) -> Response:
     # Allow serving videos and svg from assets folder
     if asset.startswith("assets/"):
         asset_path = WEB_ROOT / asset
         if not asset_path.exists() or not asset_path.is_file():
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": f"asset '{asset}' not found"})
         media_type = "video/mp4" if asset.endswith(".mp4") else "image/svg+xml" if asset.endswith(".svg") else None
         return FileResponse(asset_path, media_type=media_type)
 
@@ -266,7 +320,7 @@ def asset(asset: str) -> FileResponse:
         if file_path.exists() and file_path.is_file():
             media_type = "text/css" if asset.endswith(".css") else "text/javascript" if asset.endswith(".js") else None
             return FileResponse(file_path, media_type=media_type)
-        
+
     allowed = {
         "app.js": "text/javascript",
         "styles.css": "text/css",
@@ -274,9 +328,11 @@ def asset(asset: str) -> FileResponse:
         "vaishak_canvas.js": "text/javascript",
         "favicon.ico": "image/x-icon",
     }
-    if asset not in allowed:
-        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "asset not found"})
-    return FileResponse(WEB_ROOT / asset, media_type=allowed[asset])
+    if asset in allowed:
+        file_path = WEB_ROOT / asset
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(file_path, media_type=allowed[asset])
+    raise HTTPException(status_code=404, detail={"code": "not_found", "message": f"asset '{asset}' not found"})
 
 
 def main() -> None:

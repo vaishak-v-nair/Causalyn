@@ -59,15 +59,31 @@ class CommitBoundary:
     def __init__(self, failure_dataset: Optional[FailurePatternDataset] = None,
                  auth_policy_path: str = "policies/auth.yaml",
                  commit_history_path: Optional[str] = None):
-        self.commit_history_path = commit_history_path or os.path.abspath(
-            os.path.join("runtime", "commit_history.jsonl")
-        )
+        self.commit_history_path = commit_history_path or os.environ.get("CAUSALYN_COMMIT_HISTORY")
+        if not self.commit_history_path:
+            if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+                import tempfile
+                self.commit_history_path = os.path.join(tempfile.gettempdir(), "commit_history.jsonl")
+            else:
+                self.commit_history_path = os.path.abspath(
+                    os.path.join("runtime", "commit_history.jsonl")
+                )
         self.failure_dataset = failure_dataset
         self.auth_policy = self._load_auth_policy(auth_policy_path)
         # Ensure history file exists
-        os.makedirs(os.path.dirname(self.commit_history_path), exist_ok=True)
-        if not os.path.exists(self.commit_history_path):
-            open(self.commit_history_path, 'a').close()
+        try:
+            os.makedirs(os.path.dirname(self.commit_history_path), exist_ok=True)
+            if not os.path.exists(self.commit_history_path):
+                open(self.commit_history_path, 'a').close()
+        except OSError:
+            import tempfile
+            self.commit_history_path = os.path.join(tempfile.gettempdir(), "commit_history.jsonl")
+            try:
+                os.makedirs(os.path.dirname(self.commit_history_path), exist_ok=True)
+                if not os.path.exists(self.commit_history_path):
+                    open(self.commit_history_path, 'a').close()
+            except OSError:
+                pass
 
     def _load_auth_policy(self, path: str) -> Dict[str, Any]:
         """Load authorization policy from YAML file."""
@@ -250,8 +266,11 @@ class CommitBoundary:
 
     def _persist_commit_record(self, record: CommitRecord):
         """Append a commit record to the history file."""
-        with open(self.commit_history_path, 'a') as f:
-            f.write(json.dumps(record.to_dict()) + '\n')
+        try:
+            with open(self.commit_history_path, 'a') as f:
+                f.write(json.dumps(record.to_dict()) + '\n')
+        except OSError:
+            pass
 
     def _check_authorization(self, intent_id: Optional[str], changes: Dict[str, Any],
                              intent_text: Optional[str] = None) -> bool:
