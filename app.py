@@ -256,9 +256,9 @@ def _serve_page(filename: str, fallback_title: str) -> Response:
         <p>The Acausal Control Plane, Formal Verification Hypervisor, and CEGIS Invariant Engine are operational in serverless mode.</p>
         <div class="grid">
             <a class="btn" href="/api/health">System Health</a>
-            <a class="btn" href="/api/pipeline/recent">Audit Ledger</a>
+            <a class="btn" href="/api/pipelines">Audit Ledger</a>
             <a class="btn" href="/docs">OpenAPI Spec</a>
-            <a class="btn" href="/v1/system/status">Hypervisor Invariants</a>
+            <a class="btn" href="/api/state">World State</a>
         </div>
     </div>
 </body>
