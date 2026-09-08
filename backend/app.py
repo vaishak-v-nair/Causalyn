@@ -27,6 +27,7 @@ from z3 import Int
 from typing import Optional
 
 app = FastAPI(title="Causalyn Acausal Control Plane", version="3.2.0-PLAYGROUND")
+api = app  # Backward-compatibility alias
 
 app.add_middleware(
     CORSMiddleware,

@@ -141,6 +141,7 @@ def context_to_dict(context: OrchestrationContext) -> dict[str, Any]:
     }
 
 api = FastAPI(title="Causalyn API", version="0.2.0")
+app = api  # Top-level 'app' FastAPI instance required by Vercel, Uvicorn, and ASGI servers
 api.add_middleware(
         CORSMiddleware,
         allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
@@ -240,6 +241,14 @@ def audit_page() -> FileResponse:
 def swarm_page() -> FileResponse:
     p = WEB_ROOT / "swarm.html"
     return FileResponse(p if p.exists() else WEB_ROOT / "index.html")
+
+
+# Mount all contemporary backend control plane, CEGIS, and telemetry endpoints
+try:
+    from backend.app import app as backend_app
+    api.include_router(backend_app.router)
+except Exception as e:
+    pass
 
 
 @api.get("/{asset:path}")
