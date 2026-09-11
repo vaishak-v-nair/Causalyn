@@ -10,8 +10,6 @@ jobs:
   verify:
     name: Consensus Verification Gate
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -61,17 +59,25 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks || true
-          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml > pytest-output.log 2>&1 || true
-          
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git checkout -b ci-debug-${{ github.run_id }}
-          git add pytest-output.log test-results.xml || true
-          git commit -m "ci debug logs" || true
-          git push -u origin ci-debug-${{ github.run_id }} || true
-          
-          exit 1
+          mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
+          echo "::group::pytest output"
+          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml 2>&1 | tee pytest-output.log; TEST_EXIT=${PIPESTATUS[0]}
+          echo "::endgroup::"
+          echo "### pytest raw output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT)"
+            python scripts/annotate_test_failures.py test-results.xml || true
+            if [ -f test-results.xml ]; then
+              echo "### test-results.xml" >> $GITHUB_STEP_SUMMARY
+              echo '```xml' >> $GITHUB_STEP_SUMMARY
+              head -n 250 test-results.xml >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+            exit 1
+          fi
 
       - name: Upload Test Results Artifact
         if: always()
