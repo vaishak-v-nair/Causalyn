@@ -62,12 +62,11 @@ jobs:
           PYTHONPATH: .
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set +e
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
           echo "::group::pytest output"
-          set +e
-          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml 2>&1 | tee pytest-output.log
-          TEST_EXIT=${PIPESTATUS[0]}
-          set -e
+          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml > pytest-output.log 2>&1
+          TEST_EXIT=$?
           echo "::endgroup::"
           echo "### pytest raw output" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -84,8 +83,8 @@ jobs:
               head -n 250 test-results.xml >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
-            # exit 1 temporarily disabled to capture artifacts
           fi
+          exit $TEST_EXIT
 
       - name: Upload Test Results Artifact
         if: always()
