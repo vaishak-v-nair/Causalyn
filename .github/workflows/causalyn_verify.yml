@@ -73,9 +73,11 @@ jobs:
           tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
-            echo "::error::--- PYTEST FAILURE LOG ---"
-            tail -n 150 pytest-output.log | awk '{gsub("%","%25"); gsub("\r","%0D"); gsub("\n","%0A"); print "::error::" $0}'
-            echo "::error::--- END PYTEST LOG ---"
+            echo "::error::--- TEST FAILURE DIAGNOSTICS ---"
+            ls -la
+            echo "pytest-output.log size: $(wc -c < pytest-output.log) bytes"
+            head -n 20 pytest-output.log | awk '{print "::error::" $0}'
+            echo "::error::--- END DIAGNOSTICS ---"
           fi
 
             python scripts/annotate_test_failures.py test-results.xml || true
