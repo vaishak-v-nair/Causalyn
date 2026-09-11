@@ -40,6 +40,7 @@ jobs:
 
       - name: Execute Causalyn Continuous Verification
         env:
+          PYTHONPATH: .
           PR_NUMBER: ${{ github.event.pull_request.number }}
           COMMIT_SHA: ${{ github.sha }}
           BASE_REF: ${{ github.base_ref }}
@@ -55,6 +56,8 @@ jobs:
           python -m causalyn.cli ci verify-pr --diff /tmp/pr.diff --pr-number "${PR_NUMBER:-1}" --commit-sha "$COMMIT_SHA"
 
       - name: Run Deterministic Invariant Test Suite
+        env:
+          PYTHONPATH: .
         run: |
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
           python -m pytest tests/ epoch_v/tests/ -v --tb=auto -rfEsxX --junitxml=test-results.xml || {

@@ -37,11 +37,20 @@ class PRCheckResult(BaseModel):
     summary_markdown: str
 
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
 class PRVerifier:
     """Continuous shadow verification engine for pull requests and CI pipelines."""
 
-    def __init__(self, repo_root: Optional[str] = None) -> None:
-        self.repo_root = Path(repo_root or ".").resolve()
+    def __init__(self, repo_root: Optional[str | Path] = None) -> None:
+        if repo_root is None or repo_root == ".":
+            self.repo_root = REPO_ROOT
+        else:
+            try:
+                self.repo_root = Path(repo_root).resolve()
+            except Exception:
+                self.repo_root = REPO_ROOT
 
     def parse_patch_files(self, diff_text: str) -> Dict[str, str]:
         """Extract modified file paths and their target content from diff text."""
