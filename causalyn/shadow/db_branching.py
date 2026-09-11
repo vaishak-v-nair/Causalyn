@@ -42,7 +42,10 @@ class DatabaseShadowBranchManager:
     """Manages ephemeral database branches and verifies schema migrations."""
 
     def __init__(self, base_db_path: Optional[str] = None) -> None:
-        self.base_db_path = base_db_path or os.path.join("runtime", "causalyn.sqlite3")
+        default_base = str(Path(__file__).resolve().parent.parent.parent / "runtime" / "causalyn.sqlite3")
+        self.base_db_path = base_db_path or os.getenv("CAUSALYN_DB") or default_base
+        if self.base_db_path != ":memory:":
+            Path(self.base_db_path).resolve().parent.mkdir(parents=True, exist_ok=True)
         self.active_branches: Dict[str, str] = {}  # branch_id -> branch_file_path
 
     def analyze_sql_safety(self, sql_script: str) -> List[MigrationSafetyViolation]:

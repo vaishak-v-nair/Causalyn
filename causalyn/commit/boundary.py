@@ -8,6 +8,7 @@ import time
 import os
 import yaml
 import re
+from pathlib import Path
 from enum import Enum
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
@@ -65,8 +66,9 @@ class CommitBoundary:
                 import tempfile
                 self.commit_history_path = os.path.join(tempfile.gettempdir(), "commit_history.jsonl")
             else:
-                self.commit_history_path = os.path.abspath(
-                    os.path.join("runtime", "commit_history.jsonl")
+                repo_root = Path(__file__).resolve().parent.parent.parent
+                self.commit_history_path = str(
+                    (repo_root / "runtime" / "commit_history.jsonl").resolve()
                 )
         self.failure_dataset = failure_dataset
         self.auth_policy = self._load_auth_policy(auth_policy_path)

@@ -170,7 +170,8 @@ class EnterpriseComplianceEngine:
 
     def export_evidence_pack(self, output_dir: Optional[str] = None) -> Path:
         """Generate and save compliance evidence pack to disk."""
-        out_path = Path(output_dir or "runtime/compliance")
+        default_out = Path(__file__).resolve().parent.parent.parent / "runtime" / "compliance"
+        out_path = Path(output_dir or default_out).resolve()
         out_path.mkdir(parents=True, exist_ok=True)
 
         pack = self.generate_evidence_pack()

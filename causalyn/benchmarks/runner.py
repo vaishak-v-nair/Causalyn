@@ -56,7 +56,8 @@ class BenchmarkRunner:
     """Orchestrates high-throughput empirical benchmark evaluation."""
 
     def __init__(self, output_dir: Optional[str] = None) -> None:
-        self.output_dir = Path(output_dir or "runtime/benchmarks")
+        default_out = Path(__file__).resolve().parent.parent.parent / "runtime" / "benchmarks"
+        self.output_dir = Path(output_dir or default_out).resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     async def run_single_task(

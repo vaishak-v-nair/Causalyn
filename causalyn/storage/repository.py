@@ -46,12 +46,18 @@ class Summary:
     payload: JsonObject
 
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
 class TransactionalAuditRepository:
     """Small repository whose writes are atomic and request-id idempotent."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = str(path)
-        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        if self.path != ":memory:":
+            target_path = Path(self.path).resolve()
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            self.path = str(target_path)
         self._lock = threading.RLock()
         with self._session() as connection:
             initialize_schema(connection)
@@ -442,7 +448,8 @@ class PostgreSQLAuditRepository:
 
 def get_audit_repository(db_url_or_path: str | None = None) -> TransactionalAuditRepository | PostgreSQLAuditRepository:
     """Factory selecting SQLite WAL or PostgreSQL audit repository."""
-    target = db_url_or_path or os.getenv("DATABASE_URL") or os.path.join("runtime", "causalyn.sqlite3")
+    default_db = str(REPO_ROOT / "runtime" / "causalyn.sqlite3")
+    target = db_url_or_path or os.getenv("CAUSALYN_DB") or os.getenv("DATABASE_URL") or default_db
     if target.startswith("postgres://") or target.startswith("postgresql://"):
         return PostgreSQLAuditRepository(target)
     return TransactionalAuditRepository(target)

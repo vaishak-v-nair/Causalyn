@@ -28,6 +28,10 @@ jobs:
           pip install pytest pytest-asyncio httpx websockets pytest-github-actions-annotate-failures
           pip install -e .
 
+      - name: Ensure Runtime Directories Exist
+        run: |
+          mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
+
       - name: Build Native Rust Acceleration Kernel
         run: |
           if command -v cargo &> /dev/null; then
@@ -52,12 +56,13 @@ jobs:
 
       - name: Run Deterministic Invariant Test Suite
         run: |
-          python -m pytest tests/ -v --tb=short -rfEsxX --junitxml=test-results.xml || {
+          mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
+          python -m pytest tests/ epoch_v/tests/ -v --tb=auto -rfEsxX --junitxml=test-results.xml || {
             echo "::error::Deterministic Invariant Test Suite Failed"
             if [ -f test-results.xml ]; then
               echo "### Test Failures (test-results.xml)" >> $GITHUB_STEP_SUMMARY
               echo '```xml' >> $GITHUB_STEP_SUMMARY
-              cat test-results.xml >> $GITHUB_STEP_SUMMARY
+              head -n 250 test-results.xml >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
             exit 1

@@ -122,7 +122,10 @@ class QuantitativeTelemetryTracker:
             }
 
 
-_GLOBAL_TELEMETRY = QuantitativeTelemetryTracker(offline_log_path="runtime/telemetry/quantitative_metrics.jsonl")
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_GLOBAL_TELEMETRY = QuantitativeTelemetryTracker(
+    offline_log_path=str(REPO_ROOT / "runtime" / "telemetry" / "quantitative_metrics.jsonl")
+)
 
 
 def get_telemetry_tracker() -> QuantitativeTelemetryTracker:
@@ -154,7 +157,8 @@ class WandbAcausalLogger:
         self.is_online = False
         self.mode = "offline"
         self.run_id: str = f"run-{int(time.time()*1000)}"
-        self.offline_dir: Path = Path(offline_log_path or "runtime/telemetry/wandb_offline") / self.run_id
+        default_offline = REPO_ROOT / "runtime" / "telemetry" / "wandb_offline"
+        self.offline_dir: Path = Path(offline_log_path or default_offline) / self.run_id
         self._step = 0
 
         if self.enabled and os.environ.get("WANDB_DISABLED", "").lower() not in ("1", "true"):
