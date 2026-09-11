@@ -60,9 +60,11 @@ jobs:
           PYTHONPATH: .
         run: |
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
-          echo "::group::pytest output"
-          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml 2>&1 | tee pytest-output.log; TEST_EXIT=${PIPESTATUS[0]}
-          echo "::endgroup::"
+          set +e
+          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml > pytest-output.log 2>&1
+          TEST_EXIT=$?
+          set -e
+          cat pytest-output.log
           echo "### pytest raw output" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
