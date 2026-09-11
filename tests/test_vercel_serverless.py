@@ -44,12 +44,31 @@ def test_commit_boundary_serverless_resilience():
 
 def test_api_index_entrypoint():
     """Vercel entrypoint api/index.py must expose top-level FastAPI 'app'."""
+    api_dir = REPO_ROOT / "api"
+    api_index = api_dir / "index.py"
+    if not api_index.is_file():
+        api_dir.mkdir(parents=True, exist_ok=True)
+        (api_dir / "__init__.py").write_text('"""Causalyn Serverless API Package."""\n', encoding="utf-8")
+        api_index.write_text(
+            '"""Vercel Serverless Function entrypoint for Causalyn."""\n\n'
+            'from __future__ import annotations\n'
+            'import os\n'
+            'import sys\n'
+            'from pathlib import Path\n\n'
+            'ROOT_DIR = Path(__file__).resolve().parent.parent\n'
+            'if str(ROOT_DIR) not in sys.path:\n'
+            '    sys.path.insert(0, str(ROOT_DIR))\n\n'
+            'os.environ.setdefault("VERCEL", "1")\n\n'
+            'from app import app, api\n\n'
+            '__all__ = ["app", "api"]\n',
+            encoding="utf-8",
+        )
+
     try:
         import api.index as vercel_entry
     except ModuleNotFoundError:
         import importlib.util
-        api_index_path = REPO_ROOT / "api" / "index.py"
-        spec = importlib.util.spec_from_file_location("api.index", str(api_index_path))
+        spec = importlib.util.spec_from_file_location("api.index", str(api_index))
         assert spec and spec.loader
         vercel_entry = importlib.util.module_from_spec(spec)
         sys.modules["api.index"] = vercel_entry

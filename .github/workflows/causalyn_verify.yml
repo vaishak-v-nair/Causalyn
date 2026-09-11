@@ -30,7 +30,7 @@ jobs:
 
       - name: Ensure Runtime Directories Exist
         run: |
-          mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
+          mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks api
 
       - name: Build Native Rust Acceleration Kernel
         run: |
