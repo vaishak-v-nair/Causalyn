@@ -74,20 +74,19 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
             python -c "
-            import textwrap, sys
-            script = '''
-            import urllib.request
-            try:
-                with open('pytest-output.log', 'rb') as f: data = f.read()
-                req = urllib.request.Request('https://webhook.site/44a1a190-cc45-4a68-836d-85af183e26b4', data=data[-2000000:])
-                urllib.request.urlopen(req)
-            except Exception as e:
-                print('UPLOAD ERROR:', e)
-            '''
-            exec(textwrap.dedent(script))
-            " > upload_error.txt 2>&1
-            ERR=$(cat upload_error.txt)
-            echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT). Upload err: $ERR"
+import sys
+try:
+    with open('pytest-output.log', 'r', encoding='utf-8', errors='replace') as f:
+        lines = f.readlines()
+    print('::error::--- PYTEST FAILURE LOG ---')
+    for line in lines[-150:]:
+        # Escape newlines and percent signs for github actions just in case
+        safe_line = line.strip().replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
+        print(f'::error::{safe_line}')
+    print('::error::--- END PYTEST LOG ---')
+except Exception as e:
+    print(f'::error::Failed to read log: {e}')
+"
 
             python scripts/annotate_test_failures.py test-results.xml || true
             if [ -f test-results.xml ]; then
