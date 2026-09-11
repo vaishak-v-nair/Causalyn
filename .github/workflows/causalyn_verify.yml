@@ -74,8 +74,8 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
             echo "::error::--- TEST FAILURE DIAGNOSTICS ---"
-            ls -la
-            echo "pytest-output.log size: $(wc -c < pytest-output.log) bytes"
+            ls -la | awk '{print "::error::" $0}'
+            echo "::error::pytest-output.log size: $(wc -c < pytest-output.log) bytes"
             head -n 20 pytest-output.log | awk '{print "::error::" $0}'
             echo "::error::--- END DIAGNOSTICS ---"
           fi
