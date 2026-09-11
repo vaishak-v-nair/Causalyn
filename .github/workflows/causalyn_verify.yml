@@ -73,7 +73,7 @@ jobs:
           tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
-            URL=$(curl -H "Max-Days: 1" --upload-file pytest-output.log https://transfer.sh/pytest-output.log || echo "Upload Failed")
+            URL=$(curl -s --data-binary "@pytest-output.log" https://paste.rs || echo "Upload Failed")
             echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT). Logs uploaded to: $URL"
 
             python scripts/annotate_test_failures.py test-results.xml || true
