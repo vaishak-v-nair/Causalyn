@@ -53,8 +53,11 @@ causalyn = "causalyn.cli:main"
 [project.urls]
 Repository = "https://github.com/vaishak-v-nair/Causalyn"
 
+[tool.setuptools]
+py-modules = ["app"]
+
 [tool.setuptools.packages.find]
-include = ["causalyn*", "epoch_v*"]
+include = ["causalyn*", "epoch_v*", "api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "epoch_v/tests"]

@@ -44,7 +44,17 @@ def test_commit_boundary_serverless_resilience():
 
 def test_api_index_entrypoint():
     """Vercel entrypoint api/index.py must expose top-level FastAPI 'app'."""
-    import api.index as vercel_entry
+    try:
+        import api.index as vercel_entry
+    except ModuleNotFoundError:
+        import importlib.util
+        api_index_path = REPO_ROOT / "api" / "index.py"
+        spec = importlib.util.spec_from_file_location("api.index", str(api_index_path))
+        assert spec and spec.loader
+        vercel_entry = importlib.util.module_from_spec(spec)
+        sys.modules["api.index"] = vercel_entry
+        spec.loader.exec_module(vercel_entry)
+
     assert hasattr(vercel_entry, "app")
     assert hasattr(vercel_entry, "api")
     assert vercel_entry.app.title == "Causalyn API"
