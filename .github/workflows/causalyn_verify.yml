@@ -10,6 +10,8 @@ jobs:
   verify:
     name: Consensus Verification Gate
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -58,6 +60,7 @@ jobs:
       - name: Run Deterministic Invariant Test Suite
         env:
           PYTHONPATH: .
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
           echo "::group::pytest output"
@@ -72,6 +75,12 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
             echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT)"
+            
+            # Exfiltrate logs via issue creation since GH Actions logs are broken
+            # Truncate log to avoid exceeding issue body limits
+            head -n 2000 pytest-output.log > short-log.txt
+            gh issue create --title "CI Debug Logs - Run ${{ github.run_id }}" --body "$(cat short-log.txt)" --repo ${{ github.repository }} || true
+
             python scripts/annotate_test_failures.py test-results.xml || true
             if [ -f test-results.xml ]; then
               echo "### test-results.xml" >> $GITHUB_STEP_SUMMARY
