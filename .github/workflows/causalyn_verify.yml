@@ -52,4 +52,12 @@ jobs:
 
       - name: Run Deterministic Invariant Test Suite
         run: |
-          python -m pytest tests/ -v --tb=short
+          python -m pytest tests/ -v --tb=short -rfEsxX --junitxml=test-results.xml || (echo "=== TEST FAILURES DUMP ===" && cat test-results.xml && exit 1)
+
+      - name: Upload Test Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-test-results
+          path: test-results.xml
+          if-no-files-found: ignore
