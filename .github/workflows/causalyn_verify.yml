@@ -74,14 +74,18 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
             python -c "
-import urllib.request, sys
-try:
-    with open('pytest-output.log', 'rb') as f: data = f.read()
-    req = urllib.request.Request('https://webhook.site/44a1a190-cc45-4a68-836d-85af183e26b4', data=data[-2000000:])
-    urllib.request.urlopen(req)
-except Exception as e:
-    print('UPLOAD ERROR:', e)
-" > upload_error.txt 2>&1
+            import textwrap, sys
+            script = '''
+            import urllib.request
+            try:
+                with open('pytest-output.log', 'rb') as f: data = f.read()
+                req = urllib.request.Request('https://webhook.site/44a1a190-cc45-4a68-836d-85af183e26b4', data=data[-2000000:])
+                urllib.request.urlopen(req)
+            except Exception as e:
+                print('UPLOAD ERROR:', e)
+            '''
+            exec(textwrap.dedent(script))
+            " > upload_error.txt 2>&1
             ERR=$(cat upload_error.txt)
             echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT). Upload err: $ERR"
 
