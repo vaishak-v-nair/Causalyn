@@ -39,16 +39,19 @@ class NativeKernelBridge:
         if sys.platform == "win32":
             search_paths.extend([
                 os.path.join(crate_target, "causalyn_core.dll"),
+                os.path.join(base_dir, "target", "release", "causalyn_core.dll"),
                 os.path.join(base_dir, "causalyn_core.dll"),
             ])
         elif sys.platform == "darwin":
             search_paths.extend([
                 os.path.join(crate_target, "libcausalyn_core.dylib"),
+                os.path.join(base_dir, "target", "release", "libcausalyn_core.dylib"),
                 os.path.join(base_dir, "libcausalyn_core.dylib"),
             ])
         else:
             search_paths.extend([
                 os.path.join(crate_target, "libcausalyn_core.so"),
+                os.path.join(base_dir, "target", "release", "libcausalyn_core.so"),
                 os.path.join(base_dir, "libcausalyn_core.so"),
             ])
 

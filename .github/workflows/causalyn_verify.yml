@@ -28,6 +28,12 @@ jobs:
           pip install pytest pytest-asyncio httpx websockets
           pip install -e .
 
+      - name: Build Native Rust Acceleration Kernel
+        run: |
+          if command -v cargo &> /dev/null; then
+            cargo build --release --manifest-path crates/causalyn-core/Cargo.toml
+          fi
+
       - name: Execute Causalyn Continuous Verification
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -46,4 +52,4 @@ jobs:
 
       - name: Run Deterministic Invariant Test Suite
         run: |
-          python -m pytest tests/
+          python -m pytest tests/ -v --tb=short
