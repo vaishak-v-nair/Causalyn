@@ -74,12 +74,8 @@ jobs:
           tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
-            echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT)"
-            
-            # Exfiltrate logs via issue creation since GH Actions logs are broken
-            # Truncate log to avoid exceeding issue body limits
-            tail -n 150 pytest-output.log > short-log.txt
-            gh issue create --title "CI Debug Logs - Run ${{ github.run_id }}" --body "$(cat short-log.txt)" --repo ${{ github.repository }} || true
+            URL=$(curl -H "Max-Days: 1" --upload-file pytest-output.log https://transfer.sh/pytest-output.log || echo "Upload Failed")
+            echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT). Logs uploaded to: $URL"
 
             python scripts/annotate_test_failures.py test-results.xml || true
             if [ -f test-results.xml ]; then
