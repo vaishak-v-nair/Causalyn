@@ -78,7 +78,7 @@ jobs:
             
             # Exfiltrate logs via issue creation since GH Actions logs are broken
             # Truncate log to avoid exceeding issue body limits
-            head -n 2000 pytest-output.log > short-log.txt
+            tail -n 150 pytest-output.log > short-log.txt
             gh issue create --title "CI Debug Logs - Run ${{ github.run_id }}" --body "$(cat short-log.txt)" --repo ${{ github.repository }} || true
 
             python scripts/annotate_test_failures.py test-results.xml || true
