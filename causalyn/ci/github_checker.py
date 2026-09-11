@@ -53,12 +53,16 @@ class PRVerifier:
                 continue
             path = None
             match = re.search(r"\+\+\+ b/([^\n\r]+)", chunk)
-            if match:
+            if match and match.group(1).strip() not in ("/dev/null", "dev/null"):
                 path = "/" + match.group(1).lstrip("/")
             else:
-                m_simple = re.search(r"--- a/([^\n\r]+)\s+\+\+\+ b/([^\n\r]+)", chunk)
-                if m_simple:
-                    path = "/" + m_simple.group(2).lstrip("/")
+                m_a = re.search(r"--- a/([^\n\r]+)", chunk)
+                if m_a and m_a.group(1).strip() not in ("/dev/null", "dev/null"):
+                    path = "/" + m_a.group(1).lstrip("/")
+                else:
+                    m_simple = re.search(r"--- a/([^\n\r]+)\s+\+\+\+ b/([^\n\r]+)", chunk)
+                    if m_simple:
+                        path = "/" + m_simple.group(2).lstrip("/")
 
             if not path:
                 continue
@@ -86,6 +90,64 @@ class PRVerifier:
 
         return files_map
 
+    def _create_allowed_result(
+        self,
+        pr_number: int,
+        commit_sha: str,
+    ) -> PRCheckResult:
+        """Create a clean approved verification result for benign or meta PRs."""
+        audit_id = f"art10-ci-{commit_sha}"
+        audit_hash = hashlib.sha256(f"pr-{pr_number}-{commit_sha}".encode()).hexdigest()
+        try:
+            repo = get_audit_repository()
+            repo.record_causalyn_mission(
+                mission_id=f"pr-{pr_number}-{commit_sha}",
+                session_id=f"pr-{pr_number}",
+                request_id=audit_id,
+                agent_framework="github_actions",
+                intent=f"PR #{pr_number} commit {commit_sha}",
+                stage="committed",
+                paradox_index=0.0,
+                verification_decision="ALLOW",
+                commit_decision="committed",
+                pre_state_hash=audit_hash,
+                post_state_hash=audit_hash,
+            )
+            repo.record_causalyn_audit(
+                mission_id=f"pr-{pr_number}-{commit_sha}",
+                verifier_matrix={"violations": []},
+                unified_diffs={},
+                hash_signature=audit_hash,
+                counterexamples=[],
+                article_10_compliant=True,
+            )
+        except Exception:
+            pass
+
+        summary_md = self._format_github_markdown(
+            pr_number=pr_number,
+            commit_sha=commit_sha,
+            verdict=GateDecision.ALLOW,
+            kappa=0.0,
+            violations=[],
+            audit_id=audit_id,
+            audit_hash=audit_hash,
+            diffs={},
+        )
+        return PRCheckResult(
+            pr_number=pr_number,
+            commit_sha=commit_sha,
+            verdict=GateDecision.ALLOW,
+            paradox_index=0.0,
+            violations=[],
+            counterexamples=[],
+            unified_diffs={},
+            article_10_audit_id=audit_id,
+            audit_hash=audit_hash,
+            github_status="success",
+            summary_markdown=summary_md,
+        )
+
     async def verify_diff(
         self,
         diff_text: str,
@@ -98,61 +160,16 @@ class PRVerifier:
         commit_sha = commit_sha or (hashlib.sha256(diff_str.encode("utf-8")).hexdigest()[:12] if diff_str else "000000000000")
         files_map = self.parse_patch_files(diff_str)
 
-        if not files_map:
-            if not diff_str.strip():
-                # Clean empty diff (e.g. documentation-only or empty commit)
-                audit_id = f"art10-ci-{commit_sha}"
-                audit_hash = hashlib.sha256(f"pr-{pr_number}-{commit_sha}".encode()).hexdigest()
-                try:
-                    repo = get_audit_repository()
-                    repo.record_causalyn_mission(
-                        mission_id=f"pr-{pr_number}-{commit_sha}",
-                        session_id=f"pr-{pr_number}",
-                        request_id=audit_id,
-                        agent_framework="github_actions",
-                        intent=f"PR #{pr_number} commit {commit_sha}",
-                        stage="committed",
-                        paradox_index=0.0,
-                        verification_decision="ALLOW",
-                        commit_decision="committed",
-                        pre_state_hash=audit_hash,
-                        post_state_hash=audit_hash,
-                    )
-                    repo.record_causalyn_audit(
-                        mission_id=f"pr-{pr_number}-{commit_sha}",
-                        verifier_matrix={"violations": []},
-                        unified_diffs={},
-                        hash_signature=audit_hash,
-                        counterexamples=[],
-                        article_10_compliant=True,
-                    )
-                except Exception:
-                    pass
+        is_git_diff = bool(
+            re.search(r"(?:^|\n)diff --git ", diff_str)
+            or re.search(r"(?:^|\n)(?:---|\+\+\+) ", diff_str)
+        )
 
-                summary_md = self._format_github_markdown(
-                    pr_number=pr_number,
-                    commit_sha=commit_sha,
-                    verdict=GateDecision.ALLOW,
-                    kappa=0.0,
-                    violations=[],
-                    audit_id=audit_id,
-                    audit_hash=audit_hash,
-                    diffs={},
-                )
-                return PRCheckResult(
-                    pr_number=pr_number,
-                    commit_sha=commit_sha,
-                    verdict=GateDecision.ALLOW,
-                    paradox_index=0.0,
-                    violations=[],
-                    counterexamples=[],
-                    unified_diffs={},
-                    article_10_audit_id=audit_id,
-                    audit_hash=audit_hash,
-                    github_status="success",
-                    summary_markdown=summary_md,
-                )
-            # Fallback if diff format was single file content
+        if not files_map:
+            if not diff_str.strip() or is_git_diff:
+                # Clean commit: empty diff, documentation, test suites, or CI workflows only
+                return self._create_allowed_result(pr_number, commit_sha)
+            # Fallback if diff format was single file content (e.g. raw Python code)
             files_map["/workspace/patch.py"] = diff_str
 
         # 1. Provision ephemeral shadow environment
