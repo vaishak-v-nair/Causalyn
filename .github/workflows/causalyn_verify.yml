@@ -62,19 +62,13 @@ jobs:
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks || true
           python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml > pytest-output.log 2>&1 || true
           
-          echo "### pytest raw output" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY || true
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git checkout -b ci-debug-${{ github.run_id }}
+          git add pytest-output.log test-results.xml || true
+          git commit -m "ci debug logs" || true
+          git push -u origin ci-debug-${{ github.run_id }} || true
           
-          echo "::error::Deterministic Invariant Test Suite Failed"
-          python scripts/annotate_test_failures.py test-results.xml || true
-          if [ -f test-results.xml ]; then
-            echo "### test-results.xml" >> $GITHUB_STEP_SUMMARY
-            echo '```xml' >> $GITHUB_STEP_SUMMARY
-            head -n 250 test-results.xml >> $GITHUB_STEP_SUMMARY || true
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
           exit 1
 
       - name: Upload Test Results Artifact
