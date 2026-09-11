@@ -73,20 +73,18 @@ jobs:
           tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           if [ "$TEST_EXIT" -ne 0 ]; then
-            python -c "
-import sys
-try:
-    with open('pytest-output.log', 'r', encoding='utf-8', errors='replace') as f:
-        lines = f.readlines()
-    print('::error::--- PYTEST FAILURE LOG ---')
-    for line in lines[-150:]:
-        # Escape newlines and percent signs for github actions just in case
-        safe_line = line.strip().replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
-        print(f'::error::{safe_line}')
-    print('::error::--- END PYTEST LOG ---')
-except Exception as e:
-    print(f'::error::Failed to read log: {e}')
-"
+            python -c "import sys, textwrap; code = '''
+            try:
+                with open('pytest-output.log', 'r', encoding='utf-8', errors='replace') as f:
+                    lines = f.readlines()
+                print('::error::--- PYTEST FAILURE LOG ---')
+                for line in lines[-150:]:
+                    safe_line = line.strip().replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
+                    print(f'::error::{safe_line}')
+                print('::error::--- END PYTEST LOG ---')
+            except Exception as e:
+                print(f'::error::Failed to read log: {e}')
+            '''; exec(textwrap.dedent(code))"
 
             python scripts/annotate_test_failures.py test-results.xml || true
             if [ -f test-results.xml ]; then
