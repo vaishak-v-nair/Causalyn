@@ -62,8 +62,11 @@ include = ["causalyn*", "epoch_v*", "api*"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "epoch_v/tests"]
 pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore::ResourceWarning",
+    "ignore::DeprecationWarning",
 ]
 

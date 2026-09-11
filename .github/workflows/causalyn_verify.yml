@@ -60,8 +60,26 @@ jobs:
           PYTHONPATH: .
         run: |
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
-          python -m pytest tests/ epoch_v/tests/ -v --tb=auto -rfEsxX --junitxml=test-results.xml || {
+          python -m pytest tests/ epoch_v/tests/ -v --tb=short -rfEsxX --junitxml=test-results.xml || {
             echo "::error::Deterministic Invariant Test Suite Failed"
+            python -c '
+import xml.etree.ElementTree as ET, os
+if os.path.exists("test-results.xml"):
+    try:
+        tree = ET.parse("test-results.xml")
+        root = tree.getroot()
+        print(f"::error::Test Suite Failed: tests={root.attrib.get(\"tests\")} failures={root.attrib.get(\"failures\")} errors={root.attrib.get(\"errors\")}")
+        for tc in tree.iter("testcase"):
+            for f in list(tc.iter("failure")) + list(tc.iter("error")):
+                msg = (f.attrib.get("message") or f.text or "Unknown error").strip().replace("\n", " ")[:250]
+                cls = tc.attrib.get("classname", "")
+                name = tc.attrib.get("name", "")
+                file = tc.attrib.get("file", "test")
+                line = tc.attrib.get("line", "1")
+                print(f"::error file={file},line={line},title={cls}.{name}::{msg}")
+    except Exception as e:
+        print(f"::error::Failed to parse test-results.xml: {e}")
+'
             if [ -f test-results.xml ]; then
               echo "### Test Failures (test-results.xml)" >> $GITHUB_STEP_SUMMARY
               echo '```xml' >> $GITHUB_STEP_SUMMARY
