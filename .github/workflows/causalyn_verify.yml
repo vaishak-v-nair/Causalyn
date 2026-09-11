@@ -60,22 +60,31 @@ jobs:
           PYTHONPATH: .
         run: |
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
-          python -m pytest tests/ epoch_v/tests/ -v --tb=short -rfEsxX --junitxml=test-results.xml || {
-            echo "::error::Deterministic Invariant Test Suite Failed"
+          echo "::group::pytest output"
+          python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=test-results.xml 2>&1 | tee pytest-output.log; TEST_EXIT=${PIPESTATUS[0]}
+          echo "::endgroup::"
+          echo "### pytest raw output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 200 pytest-output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "::error::Deterministic Invariant Test Suite Failed (exit code $TEST_EXIT)"
             python scripts/annotate_test_failures.py test-results.xml || true
             if [ -f test-results.xml ]; then
-              echo "### Test Failures (test-results.xml)" >> $GITHUB_STEP_SUMMARY
+              echo "### test-results.xml" >> $GITHUB_STEP_SUMMARY
               echo '```xml' >> $GITHUB_STEP_SUMMARY
               head -n 250 test-results.xml >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
             exit 1
-          }
+          fi
 
       - name: Upload Test Results Artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pytest-test-results
-          path: test-results.xml
+          path: |
+            test-results.xml
+            pytest-output.log
           if-no-files-found: ignore
