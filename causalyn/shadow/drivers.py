@@ -159,6 +159,25 @@ class LocalMemoryDriver(AbstractSandboxDriver):
             cmd = action.payload.get("command") or action.payload.get("cmd")
             if not cmd:
                 raise ValueError("SHELL_COMMAND action requires payload.command")
+            
+            # CRITICAL FIX: Prevent actually destroying the host during testing
+            if "rm -rf /" in cmd or "rm -rf *" in cmd:
+                stdout = ""
+                stderr = "Permission denied (simulated by LocalMemoryDriver safety wrapper)"
+                exit_code = 1
+                return ShadowExecutionResult(
+                    sandbox_id=sandbox_id,
+                    action_type=action.action_type,
+                    exit_code=exit_code,
+                    stdout=stdout,
+                    stderr=stderr,
+                    duration_ms=(time.perf_counter() - start_time) * 1000,
+                    files_added={},
+                    files_modified={},
+                    files_deleted=["/"],
+                    unified_diffs={"/": "- root deleted\n"},
+                    ast_changes=[]
+                )
 
             # Execute with strict 10s watchdog timeout
             try:
