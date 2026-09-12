@@ -77,4 +77,9 @@ class AmbientFabric:
                     except Exception:
                         pass
 
-
+    def annihilate(self, shadow_dir: Path) -> None:
+        """
+        Instantaneous state destruction when geometric paradox is detected.
+        Zero bytes written to host disk.
+        """
+        shutil.rmtree(shadow_dir, ignore_errors=True)

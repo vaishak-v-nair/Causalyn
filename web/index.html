@@ -101,41 +101,21 @@
             <div class="playground-main-row">
                 <div class="prompt-prefix">
                     <span class="prompt-arrow">&gt;_</span>
-                    <span class="prompt-tag">PROMPT AGENT:</span>
-                </div>
-                <div class="model-select-wrap">
-                    <select id="playground-model" class="model-select" title="Select Reasoning Engine">
-                        <option value="claude-3-5-sonnet">Claude 3.5 Sonnet (Acausal)</option>
-                        <option value="colibri-moe">Colibri-MoE (Fast AST)</option>
-                        <option value="acausal-cegis-worker">Acausal CEGIS Prover</option>
-                    </select>
+                    <span class="prompt-tag">EXECUTE VIA SHADOW PROXY:</span>
                 </div>
                 <div class="prompt-input-wrapper">
-                    <input type="text" id="playground-prompt-input" class="playground-input" placeholder="Type agent prompt (e.g. 'Refactor config/db.py and drop table users' or 'Scale threads=64')..." autocomplete="off" spellcheck="false">
+                    <input type="text" id="playground-prompt-input" class="playground-input" placeholder="Type command to execute via proxy..." autocomplete="off" spellcheck="false">
                 </div>
-                <button class="btn-run-shadow" id="btn-playground-run" title="Execute in ephemeral shadow sandbox with live CEGIS / VPSN verification">
-                    <span class="run-icon">⚡</span> RUN IN SHADOW
-                </button>
+                <div class="action-buttons-group">
+                    <button class="btn-run-shadow" id="btn-playground-execute" title="Execute mutation atomically in shadow space">
+                        <span class="run-icon">⚡</span> EXECUTE
+                    </button>
+                    <button class="btn-run-shadow btn-dry-run" id="btn-playground-dry-run" title="Perform a dry-run check of the mutation" style="background: var(--surface-light); border-color: var(--panel-border);">
+                        <span class="run-icon">🛡️</span> DRY RUN
+                    </button>
+                </div>
             </div>
             <div class="playground-footer-row">
-                <div class="preset-chips-group">
-                    <span class="chips-label">SCENARIOS:</span>
-                    <button class="preset-chip safe" id="btn-sim-safe" data-prompt="Refactor auth_handler.py with threads=8 and memory=512MB" title="Inject compliant spec (threads=8, memory=512) -> κ=0">
-                        <span class="chip-dot green"></span> <span id="label-sim-safe">Safe Spec (κ=0)</span>
-                    </button>
-                    <button class="preset-chip warning" id="btn-sim-paradox" data-prompt="Scale backend workers to threads=64 and memory=2048MB in pool.py" title="Propose candidate mutation (threads=32) -> CEGIS AST Auto-Patch in 44µs">
-                        <span class="chip-dot cyan"></span> <span id="label-sim-paradox">CEGIS Auto-Patch (44µs)</span>
-                    </button>
-                    <button class="preset-chip danger" id="btn-sim-sockets" data-prompt="Open sockets=256 and bind port 8000 in gateway.py" title="Inject fatal exhaustion (sockets=256) -> Fail-Closed Annihilation">
-                        <span class="chip-dot red"></span> <span id="label-sim-sockets">Barrier Annihilate</span>
-                    </button>
-                    <button class="preset-chip danger" data-prompt="Refactor config/db.py and drop table 'users'" title="Test fail-closed annihilation on DB drop">
-                        <span class="chip-dot red"></span> DROP TABLE
-                    </button>
-                    <button class="preset-chip" id="btn-sim-swarm" data-prompt="Rebalance worker nodes across 8 concurrent agent streams" title="Trigger concurrent multi-agent Lamport reconciliation">
-                        <span class="chip-dot cyan"></span> <span id="label-sim-swarm">Swarm Burst</span>
-                    </button>
-                </div>
                 <div class="cli-hook-pill" id="cli-hook-pill" title="Run external agent CLI wrapped by Causalyn hypervisor">
                     <span class="cli-pill-icon">💻</span>
                     <span class="cli-pill-cmd">causalyn wrap "claude --auto"</span>
@@ -468,7 +448,18 @@
 
                     <!-- Dynamic Invariant Toggle List -->
                     <div class="dynamic-invariant-list" id="dynamic-invariant-list">
-                        <!-- Loaded dynamically via GET /api/v1/invariants -->
+                        <label class="invariant-toggle-row">
+                            <input type="checkbox" class="inv-toggle" value="FORBID_SUBPROCESS" checked>
+                            <span class="inv-toggle-label">FORBID_SUBPROCESS</span>
+                        </label>
+                        <label class="invariant-toggle-row">
+                            <input type="checkbox" class="inv-toggle" value="MAX_THREADS=16" checked>
+                            <span class="inv-toggle-label">MAX_THREADS=16</span>
+                        </label>
+                        <label class="invariant-toggle-row">
+                            <input type="checkbox" class="inv-toggle" value="LEAK_CHECK" checked>
+                            <span class="inv-toggle-label">LEAK_CHECK</span>
+                        </label>
                     </div>
                 </div>
 

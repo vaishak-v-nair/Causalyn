@@ -125,7 +125,7 @@ function initWebSocket() {
     const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsPort = window.location.port ? `:${window.location.port}` : '';
     const wsHost = window.location.hostname || '127.0.0.1';
-    const wsUrl = `${wsProto}//${wsHost}${wsPort}/ws/continuum`;
+    const wsUrl = `${wsProto}//${wsHost}${wsPort}/ws/telemetry`;
     
     try {
         ws = new WebSocket(wsUrl);
@@ -669,20 +669,16 @@ function setupControls() {
     }
 
     // Simulation Triggers (Deterministic VPSN Scenarios)
-    document.getElementById('btn-sim-safe')?.addEventListener('click', () => {
-        triggerSimulation("WORKER-TX-01", "config.py", "threads = 8\nmemory = 512", { threads: 8, memory: 512 });
+    document.getElementById('btn-playground-execute')?.addEventListener('click', () => {
+        const prompt = document.getElementById('playground-prompt-input')?.value;
+        if (!prompt) return;
+        triggerExecution("TERMINAL-EXEC-01", "main.py", prompt, { threads: 8, memory: 512 }, false);
     });
 
-    document.getElementById('btn-sim-paradox')?.addEventListener('click', () => {
-        triggerSimulation("MUTATION-DAEMON-99", "worker.py", "threads = 32\nmemory = 4096", { threads: 32, memory: 4096 });
-    });
-
-    document.getElementById('btn-sim-sockets')?.addEventListener('click', () => {
-        triggerSimulation("SOCKET-GATEWAY-04", "gateway.py", "sockets = 256\nmemory = 256", { sockets: 256, memory: 256 });
-    });
-
-    document.getElementById('btn-sim-swarm')?.addEventListener('click', () => {
-        triggerSwarmBurst();
+    document.getElementById('btn-playground-dry-run')?.addEventListener('click', () => {
+        const prompt = document.getElementById('playground-prompt-input')?.value;
+        if (!prompt) return;
+        triggerExecution("TERMINAL-EXEC-01", "main.py", prompt, { threads: 64, memory: 4096 }, true);
     });
 }
 
@@ -798,11 +794,12 @@ function syncTimelineWithKappa(kappa) {
     }
 }
 
-async function triggerSimulation(agentId, file, code, stateVars) {
+async function triggerExecution(agentId, file, code, stateVars, isDryRun) {
     setLifecyclePhase(1, 'active');
     logToFeed(agentId, `Emitting candidate mutation on ${file}...`, "normal");
     try {
-        const res = await fetch("/api/v1/intercept", {
+        const endpoint = isDryRun ? "/api/v1/intercept" : "/api/v1/intercept"; // Backend handles both via intercept for now
+        const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -813,27 +810,9 @@ async function triggerSimulation(agentId, file, code, stateVars) {
             })
         });
         const result = await res.json();
-        console.log("Intercept result", result);
+        console.log("Execute result", result);
     } catch (err) {
         console.warn("Backend request fallback", err);
-        const isParadox = (stateVars.threads && stateVars.threads > 16) || (stateVars.memory && stateVars.memory > 1024) || (stateVars.sockets && stateVars.sockets > 100);
-        const isAnnihilated = stateVars.sockets && stateVars.sockets > 200;
-        const status = isAnnihilated ? "ANNIHILATED" : (isParadox ? "SYNTHESIZED" : "COMMITTED");
-        const kappa = isAnnihilated ? 999.0 : (isParadox ? 1.0 : 0.0);
-        const patch = isParadox ? (isAnnihilated ? { annihilated: true } : { corrected: true, values: { threads: 16, memory: 1024 } }) : null;
-
-        handleServerMessage({
-            type: "paradox_spike",
-            agent_id: agentId,
-            target_file: file,
-            kappa: kappa,
-            status: status,
-            latency_us: 1420.5,
-            vector_clock: Math.floor(Math.random() * 20) + 1,
-            patch: patch,
-            proposed_state: stateVars,
-            proposed_content: code
-        });
     }
 }
 

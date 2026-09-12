@@ -23,6 +23,7 @@ from core.manim_engine import ManimEngine
 from core.crdt_state_bus import HyperDimensionalStateBus, SwarmOperation
 from core.invariant_registry import registry
 from core.agent_reasoning import AgentReasoningEngine
+from core.z3_engine import verify_invariants
 from z3 import Int
 from typing import Optional
 
@@ -104,7 +105,7 @@ reasoning_engine = AgentReasoningEngine(synthesizer, fabric)
 
 web_dir = Path(__file__).resolve().parent.parent / "web"
 
-@app.websocket("/ws/continuum")
+@app.websocket("/ws/telemetry")
 async def telemetry_endpoint(websocket: WebSocket):
     await telemetry.connect(websocket)
     try:
