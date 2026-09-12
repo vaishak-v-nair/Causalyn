@@ -63,33 +63,21 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
-          echo "::error::PRE-RUN PWD: $(pwd)"
-          ls -la | head -n 10 | awk '{print "::error::PRE-RUN ls: " $0}'
           mkdir -p runtime runtime/compliance runtime/telemetry runtime/benchmarks
-          echo "::group::pytest output"
           python -m pytest tests/ epoch_v/tests/ -v --tb=long -rfEsxX --junitxml=/tmp/test-results.xml > /tmp/pytest-output.log 2>&1
           TEST_EXIT=$?
-          echo "::endgroup::"
+          
           echo "### pytest raw output" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           tail -n 200 /tmp/pytest-output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          
           if [ "$TEST_EXIT" -ne 0 ]; then
-            echo "::error::--- TEST FAILURE DIAGNOSTICS ---"
-            echo "::error::PWD: $(pwd)"
-            ls -la | awk '{print "::error::" $0}'
-            echo "::error::pytest-output.log wc: $(wc -c < /tmp/pytest-output.log 2>&1)"
-            head -n 20 /tmp/pytest-output.log 2>&1 | awk '{print "::error::" $0}'
-            echo "::error::--- END DIAGNOSTICS ---"
+            echo "Pytest failed. Tail of log:"
+            tail -n 100 /tmp/pytest-output.log
           fi
-
+          
           python scripts/annotate_test_failures.py /tmp/test-results.xml || true
-          if [ -f /tmp/test-results.xml ]; then
-            echo "### test-results.xml" >> $GITHUB_STEP_SUMMARY
-            echo '```xml' >> $GITHUB_STEP_SUMMARY
-            head -n 250 /tmp/test-results.xml >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
           exit $TEST_EXIT
 
       - name: Upload Test Results Artifact
@@ -98,6 +86,6 @@ jobs:
         with:
           name: pytest-test-results
           path: |
-            test-results.xml
-            pytest-output.log
+            /tmp/test-results.xml
+            /tmp/pytest-output.log
           if-no-files-found: ignore
