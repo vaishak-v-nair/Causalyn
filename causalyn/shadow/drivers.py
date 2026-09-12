@@ -161,7 +161,9 @@ class LocalMemoryDriver(AbstractSandboxDriver):
                 raise ValueError("SHELL_COMMAND action requires payload.command")
             
             # CRITICAL FIX: Prevent actually destroying the host during testing
-            if "rm -rf /" in cmd or "rm -rf *" in cmd:
+            # Since LocalMemoryDriver executes natively without a container, we must mock these!
+            dangerous_tokens = ["rm -rf", "mkfs", "dd if=", "chmod -R", "chown -R", "iptables"]
+            if any(token in cmd for token in dangerous_tokens):
                 stdout = ""
                 stderr = "Permission denied (simulated by LocalMemoryDriver safety wrapper)"
                 exit_code = 1
