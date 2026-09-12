@@ -167,7 +167,6 @@ class LocalMemoryDriver(AbstractSandboxDriver):
                 exit_code = 1
                 return ShadowExecutionResult(
                     sandbox_id=sandbox_id,
-                    action_type=action.action_type,
                     exit_code=exit_code,
                     stdout=stdout,
                     stderr=stderr,
@@ -175,8 +174,7 @@ class LocalMemoryDriver(AbstractSandboxDriver):
                     files_added={},
                     files_modified={},
                     files_deleted=["/"],
-                    unified_diffs={"/": "- root deleted\n"},
-                    ast_changes=[]
+                    unified_diffs={"/": "- root deleted\n"}
                 )
 
             # Execute with strict 10s watchdog timeout
