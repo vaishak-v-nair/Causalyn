@@ -1,0 +1,20 @@
+{
+  "name": "causalyn",
+  "description": "Causalyn: Verified Causal Recovery — checkpoints each step, bisects on failure, verifies fixes with an independent model.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "causalyn hook",
+        "timeout": 10000
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "causalyn hook",
+        "timeout": 120000
+      }
+    ]
+  }
+}

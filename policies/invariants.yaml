@@ -1,0 +1,12 @@
+# Policies for invariant verification
+protected_paths:
+  - /protected/
+  - /secrets/
+  - /config/
+  - /.env
+secret_patterns:
+  - password
+  - secret
+  - key
+  - token
+  - credential

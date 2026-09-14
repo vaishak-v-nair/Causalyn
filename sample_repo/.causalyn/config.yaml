@@ -1,0 +1,9 @@
+# Causalyn configuration
+# See: https://github.com/vaishak-v-nair/Causalyn
+
+verification:
+  provider: openai        # openai | anthropic | gemini | groq
+  model: gpt-4o           # model name for the verification provider
+
+checkpoint:
+  branch: causalyn/checkpoints

@@ -1,0 +1,11 @@
+# This file is used internally by FFMPEG.
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/2284245285_2314502419_223132457.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_446268785_162969746.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_2852943061_489215799.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_1109346203_2267933227.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_3880968470_1231699166.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_628795460_4193173969.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_2509210866_3153160019.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_608937960_2339967952.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_3417159282_556242549.mp4'
+file 'file:E:/BrosKi/causalyn/web/assets/videos/paradox_index/1080p60/partial_movie_files/ParadoxIndexScene/311350401_170846798_2063910387.mp4'

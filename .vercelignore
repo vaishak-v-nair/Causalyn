@@ -1,0 +1,40 @@
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Testing and test cache
+tests
+.pytest_cache
+.coverage
+htmlcov
+
+# Git and IDE
+.git
+.github
+.agents
+.claude
+.idea
+.vscode
+
+# Large media files (exceed serverless bundle limits)
+causalyn_presentation_demo.mp4
+causalyn_presentation_demo.webp
+media/
+*.mov
+*.mp4
+*.webp
+
+# Ephemeral runtime state and sqlite databases
+runtime/causalyn.sqlite3*
+runtime/commit_history.jsonl
+runtime/demo_workspace
+runtime/*.tmp*

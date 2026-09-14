@@ -1,0 +1,13 @@
+# Authorization policies
+# List of intent IDs or patterns that are authorized
+authorized_intents:
+  - ".*authorized.*"
+  - "build.*"
+  - "create.*"
+  - "migrate.*"
+  - "update.*"
+  - "fix.*"
+  - "resolve.*"
+# Optional: require a specific token in changes
+auth_token_required: false
+auth_token: "change-me"
